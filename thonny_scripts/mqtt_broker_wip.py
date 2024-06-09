@@ -6,6 +6,7 @@ import network
 import time
 import gc
 import threading
+import random
 
 class MQTTBroker:
     def __init__(self, host='0.0.0.0', port=1883):
@@ -53,6 +54,7 @@ class MQTTBroker:
 
     def handle_client(self, client):
         client.settimeout(20.0)  # Increase timeout to 20 seconds
+        buffer = b''
         try:
             while True:
                 msg = client.recv(2048)
@@ -60,6 +62,26 @@ class MQTTBroker:
                     print("No message received, closing connection.")
                     self.remove_client(client)
                     break
+                
+                buffer += msg
+                while len(buffer) >= 2:
+                    # Get the remaining length of the MQTT message
+                    remaining_length, multiplier = 0, 1
+                    for i in range(1, len(buffer)):
+                        byte = buffer[i]
+                        remaining_length += (byte & 0x7f) * multiplier
+                        if (byte & 0x80) == 0:
+                            break
+                        multiplier *= 128
+
+                    total_length = 1 + i + remaining_length
+                    if len(buffer) < total_length:
+                        # Wait for the complete message
+                        break
+
+                    msg = buffer[:total_length]
+                    buffer = buffer[total_length:]
+                
                 print('Received message:', msg, ' - ', ((msg[0] & 0xF0) >> 4) )
                 msg_type = (msg[0] & 0xF0) >> 4
                 print('Message type:', msg_type)
@@ -85,31 +107,36 @@ class MQTTBroker:
             client.close()
 
     def handle_connect(self, client, msg):
-        try:
-            protocol_name_len = struct.unpack('>H', msg[2:4])[0]
-            protocol_name = msg[4:4 + protocol_name_len].decode('utf-8')
-            print('Protocol Name:', protocol_name)
-            
-            # Check if the protocol name is MQTT
-            if protocol_name != 'MQTT':
-                print('Unsupported protocol:', protocol_name)
-                raise ValueError('Unsupported protocol')
-            
-            client_id_len = struct.unpack('>H', msg[10 + protocol_name_len + 1:12 + protocol_name_len + 1])[0]
-            client_id = msg[12 + protocol_name_len + 1:12 + protocol_name_len + 1 + client_id_len].decode('utf-8')
+        if len(msg) > 3:
+            try:
+                protocol_name_len = struct.unpack('>H', msg[2:4])[0]
+                protocol_name = msg[4:4 + protocol_name_len].decode('utf-8')
+                print('Protocol Name:', protocol_name)
+                
+                # Check if the protocol name is MQTT
+                if protocol_name != 'MQTT':
+                    print('Unsupported protocol:', protocol_name)
+                    raise ValueError('Unsupported protocol')
+                
+                client_id_len = struct.unpack('>H', msg[10 + protocol_name_len + 1:12 + protocol_name_len + 1])[0]
+                client_id = msg[12 + protocol_name_len + 1:12 + protocol_name_len + 1 + client_id_len].decode('utf-8')
+                self.clients[client_id] = client
+                client.send(b'\x20\x02\x00\x00')  # CONNACK with 0x00 connection accepted
+                print('Client connected:', client_id)
+                
+            except ValueError as ve:
+                print('Error in handle_connect:', ve)
+                # Close the client connection
+                client.close()
+            except Exception as e:
+                print('Error in handle_connect:', e)
+                # Close the client connection
+                client.close()
+        else:
+            client_id = random.randrange(0, 255)
             self.clients[client_id] = client
             client.send(b'\x20\x02\x00\x00')  # CONNACK with 0x00 connection accepted
-            print('Client connected:', client_id)
-            
-        except ValueError as ve:
-            print('Error in handle_connect:', ve)
-            # Close the client connection
-            client.close()
-        except Exception as e:
-            print('Error in handle_connect:', e)
-            # Close the client connection
-            client.close()
-
+    # Received message: b'\x00\x04pingstart'  -  0
     def handle_publish(self, client, msg):
         try:
             # Extract topic and payload from the message
