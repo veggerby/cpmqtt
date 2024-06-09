@@ -2,16 +2,24 @@
 
 ## thonny_scripts
 
- * ***mqtt_broker_wip - Test***:
-     * [x] Kan håndtere MQTTx app forbinder til enheden
-        * [x] Kan modtage beskeder fra MQTTx app
-        * [ ] Kan sende beskeder til MQTTx app - ***fejler MQTTx afbryder forbindelsen***
-     * [x] Kan håndtere Android App myMQTT forbinder til enheden
-       * [ ] Kan modtage beskeder fra Android App myMQTT
-       * [ ] Kan sende beskeder til Android App myMQTT
-     * [x] Kan håndtere at ESP32 `uMQTT.robust` forbinder til enheden
-       * [x] Kan modtage beskeder fra ESP32 `uMQTT.robust`
-       * [x] Kan sende beskeder til ESP32 `uMQTT.robust` 
+ #### ***mqtt_broker_wip - Test***:
+ * [x] Kan håndtere MQTTx app forbinder til enheden
+    * [x] Kan modtage beskeder fra MQTTx app
+    * [ ] Kan sende beskeder til MQTTx app - ***fejler MQTTx afbryder forbindelsen***
+ * [x] Kan håndtere Android App myMQTT forbinder til enheden
+   * [ ] Kan modtage beskeder fra Android App myMQTT
+   * [ ] Kan sende beskeder til Android App myMQTT
+ * [x] Kan håndtere at ESP32 `uMQTT.robust` forbinder til enheden
+   * [x] Kan modtage beskeder fra ESP32 `uMQTT.robust`
+   * [x] Kan sende beskeder til ESP32 `uMQTT.robust` 
+
+ #### ***mqtt klienter Ping/Pong - Test***:
+ * [x] Kan forbinde til RPI Zero Broker
+     * [x] sende beskeder
+     * [x] modtage beskeder
+ * [x] Kan forbinde til ESP32 Broker
+     * [x] sende beskeder
+     * [x] modtage beskeder
 
 ## jupyter_notebooks
 
