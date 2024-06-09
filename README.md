@@ -2,9 +2,16 @@
 
 ## thonny_scripts
 
-* Er indtil videre kun testet med ESP32.
-   * ***mqtt_broker_wip***: fungere nogenlunde med MQTTx fra laptop, men fejler med myMQTT Android App når der bliver sendt beskeder.
-      * skal testes med ESP32 MQTTsimple.
+ * ***mqtt_broker_wip - Test***:
+     * [x] Kan håndtere MQTTx app forbinder til enheden
+        * [x] Kan modtage beskeder fra MQTTx app
+        * [ ] Kan sende beskeder til MQTTx app - ***fejler MQTTx afbryder forbindelsen***
+     * [x] Kan håndtere Android App myMQTT forbinder til enheden
+       * [ ] Kan modtage beskeder fra Android App myMQTT
+       * [ ] Kan sende beskeder til Android App myMQTT
+     * [x] Kan håndtere at ESP32 `uMQTT.robust` forbinder til enheden
+       * [x] Kan modtage beskeder fra ESP32 `uMQTT.robust`
+       * [x] Kan sende beskeder til ESP32 `uMQTT.robust` 
 
 ## jupyter_notebooks
 
