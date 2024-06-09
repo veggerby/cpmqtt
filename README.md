@@ -7,8 +7,8 @@
     * [x] Kan modtage beskeder fra MQTTx app
     * [ ] Kan sende beskeder til MQTTx app - ***fejler MQTTx afbryder forbindelsen***
  * [x] Kan håndtere Android App myMQTT forbinder til enheden
-   * [ ] Kan modtage beskeder fra Android App myMQTT
-   * [ ] Kan sende beskeder til Android App myMQTT
+   * [x] Kan modtage beskeder fra Android App myMQTT
+   * [x] Kan sende beskeder til Android App myMQTT
  * [x] Kan håndtere at ESP32 `uMQTT.robust` forbinder til enheden
    * [x] Kan modtage beskeder fra ESP32 `uMQTT.robust`
    * [x] Kan sende beskeder til ESP32 `uMQTT.robust` 
