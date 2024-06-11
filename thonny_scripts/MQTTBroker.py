@@ -8,6 +8,7 @@ import gc
 import threading
 import random
 import machine, neopixel
+from machine import Timer
 
 class MQTTBroker:
     def __init__(self, host='0.0.0.0', port=1883, rgb_led = -1, debug = False):
@@ -17,6 +18,7 @@ class MQTTBroker:
         self.topics = {}
         self.rgb_led = rgb_led
         self.debug = debug
+        self.tim0 = Timer(0)
         if rgb_led > 0:
             self.led = neopixel.NeoPixel(machine.Pin(rgb_led), 1)
             self.set_led((0,255,0))
@@ -87,15 +89,18 @@ class MQTTBroker:
                     self.set_led(( 0, 0, 255))
                 elif msg_type == 8:  # SUBSCRIBE
                     self.handle_subscribe(client, msg)
+                    self.set_led(( 42, 255, 246))
                 elif msg_type == 10:  # UNSUBSCRIBE
                     self.handle_unsubscribe(client, msg)
+                    self.set_led(( 235, 255, 0))
                 elif msg_type == 12:  # PINGREQ
                     self.send_pingresp(client)
                 elif msg_type == 14:  # DISCONNECT
                     self.handle_disconnect(client)
                 else:
                     self.printW(f'Warning: Unknown message type: {msg_type}')
-                self.set_led(( 0, 255, 0))
+                
+                self.tim0.init(period=750, mode=Timer.ONE_SHOT, callback=self.reset_led)
         except Exception as e:
             self.printE(f'Error: Client handling error: {e}')
             self.remove_client(client)
@@ -103,6 +108,9 @@ class MQTTBroker:
         finally:
             self.printW('Warning: Closing client connection.')
             client.close()
+            
+    def reset_led(self, tim):
+        self.set_led(( 0, 255, 0))
 
     def handle_connect(self, client, msg):
         if len(msg) > 3:
@@ -303,17 +311,3 @@ class MQTTBroker:
     CLEAR = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-
-# Connect to WiFi (replace with your SSID and password)
-ssid = 'Signes_hytte_2.4GHz'
-password = '2744igen'
-               
-wifi = network.WLAN(network.STA_IF); wifi.active(True)
-wifi.scan()                             # Scan for available access points
-wifi.connect("Signes_hytte_2.4GHz", "2744igen") # Connect to an AP
-wifi.isconnected()                      # Check for successful connection
-while not wifi.isconnected():
-    time.sleep(1)
-
-broker = MQTTBroker(wifi.ifconfig()[0], 1883, 48, True)
-broker.start()

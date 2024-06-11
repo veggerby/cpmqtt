@@ -2,7 +2,7 @@
 
 ## thonny_scripts
 
- #### ***mqtt_broker_wip - Test***:
+ #### ***MQTTBroker Class - Test***:
  * [x] Kan håndtere MQTTx app forbinder til enheden
     * [x] Kan modtage beskeder fra MQTTx app
     * [ ] Kan sende beskeder til MQTTx app - ***fejler MQTTx afbryder forbindelsen***
