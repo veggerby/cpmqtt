@@ -6,14 +6,18 @@ from umqtt.robust import MQTTClient
 import network
 sta_if = network.WLAN(network.STA_IF); sta_if.active(True)
 sta_if.scan()                             # Scan for available access points
-sta_if.connect("Signes_hytte_2.4GHz", "2744igen") # Connect to an AP
-sta_if.isconnected()                      # Check for successful connection
+sta_if.connect("frivillig", "") # Connect to an AP
+#sta_if.isconnected()                      # Check for successful connection
+
+print("Connected to wifi")
+
+while not sta_if.isconnected():
+    time.sleep(1)
+    print(".")
 
 
-SERVER="192.168.0.226"
+SERVER="192.168.4.1"
 ClientID = f'esp32-sub-{time.time_ns()}'
-user = "allan"
-password = "2744igen"
 topic_send = "pong"
 topic_modtag = "ping"
 modtaget = False
@@ -41,7 +45,7 @@ def pub():
 
 def main(server=SERVER):
     client.set_callback(sub)
-    client.connect(True)
+    client.connect(0)
     print('Connected to MQTT Broker "%s"' % (server))
     client.subscribe(topic_modtag)
     while True:
