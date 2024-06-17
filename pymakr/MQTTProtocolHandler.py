@@ -33,12 +33,15 @@ class ProtocolHandler(ProtocolHandlerInterface):
         self.logger = logger or Logger()
 
     def handle(self, client: Client, msg):
-        message = MQTTMessage.create(msg)
+        try:
+            message = MQTTMessage.create(msg)
 
-        if (not issubclass(type(message), MQTTMessage)):
-            raise ValueError('Unsupported message type')
+            if (not issubclass(type(message), MQTTMessage)):
+                raise ValueError('Unsupported message type')
 
-        message.handle_message(self, client)
+            message.handle_message(self, client)
+        except Exception as e:
+            self.logger.error(f'Error in handle: {e}, {traceback.format_exc()}')
 
     def handle_connect(self, client: Client, connect_message: ConnectMessage):
         try:
