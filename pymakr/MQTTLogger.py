@@ -9,9 +9,9 @@ class Logger:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-    debug = True
+    debug: bool = True
 
-    def __init__(self, debug) -> None:
+    def __init__(self, debug: bool = True):
         self.debug = debug
 
     def log(self, flags, message):
