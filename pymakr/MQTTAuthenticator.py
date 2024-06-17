@@ -1,7 +1,9 @@
 from MQTTLogger import Logger
 
 class Authenticator:
-    def __init__(self, user_db, logger = None):
+    logger: Logger
+
+    def __init__(self, user_db, logger: Logger = None):
         self.user_db = user_db
         self.logger = logger or Logger()
 
