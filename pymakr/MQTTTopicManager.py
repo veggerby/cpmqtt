@@ -1,3 +1,4 @@
+import traceback
 import MQTTLogger as Logger
 
 class TopicManager:
@@ -22,7 +23,7 @@ class TopicManager:
                 try:
                     subscriber.send(msg)
                 except OSError as e:
-                    self.logger.error(f'Error forwarding message to subscriber: {e}')
+                    self.logger.error(f'Error forwarding message to subscriber: {e}, {traceback.format_exc()}')
                     self.topics[topic].remove(subscriber)
         else:
             self.logger.warning(f'No subscribers for topic: {topic}')

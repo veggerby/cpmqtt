@@ -3,7 +3,7 @@ import abc
 
 from MQTTAuthenticator import Authenticator
 from MQTTClient import Client
-from MQTTProtocolHandler import ProtocolHandler
+from MQTTProtocolHandlerInterface import ProtocolHandlerInterface
 
 MESSAGE_TYPE_CONNECT = 1
 MESSAGE_TYPE_CONNACK = 2
@@ -27,36 +27,37 @@ class MQTTMessage(abc.ABC):
         if message_type == MESSAGE_TYPE_CONNECT:
             return ConnectMessage(msg)
         elif message_type == MESSAGE_TYPE_CONNACK:
-            raise NotImplementedError()
+            return ConnAckMessage(msg)
         elif message_type == MESSAGE_TYPE_PUBLISH:
-            raise NotImplementedError()
+            return PublishMessage(msg)
         elif message_type == MESSAGE_TYPE_PUBACK:
-            raise NotImplementedError()
+            return PubAckMessage(msg)
         elif message_type == MESSAGE_TYPE_PUBREC:
-            raise NotImplementedError()
+            return PubRecMessage(msg)
         elif message_type == MESSAGE_TYPE_PUBREL:
-            raise NotImplementedError()
+            return PubRelMessage(msg)
         elif message_type == MESSAGE_TYPE_PUBCOMP:
-            raise NotImplementedError()
+            return PubCompMessage(msg)
         elif message_type == MESSAGE_TYPE_SUBSCRIBE:
-            raise NotImplementedError()
+            return SubscribeMessage(msg)
         elif message_type == MESSAGE_TYPE_SUBACK:
-            raise NotImplementedError()
+            return SubAckMessage(msg)
         elif message_type == MESSAGE_TYPE_UNSUBSCRIBE:
-            raise NotImplementedError()
+            return UnsubscribeMessage(msg)
         elif message_type == MESSAGE_TYPE_UNSUBACK:
-            raise NotImplementedError()
+            return UnsubAckMessage(msg)
         elif message_type == MESSAGE_TYPE_PINGREQ:
-            raise NotImplementedError()
+            return PingReqMessage(msg)
         elif message_type == MESSAGE_TYPE_PINGRESP:
-            raise NotImplementedError()
+            return PingRespMessage(msg)
         elif message_type == MESSAGE_TYPE_DISCONNECT:
-            raise NotImplementedError()
+            return DisconnectMessage(msg)
         else:
             raise ValueError(f'Unsupported message type: {message_type}')
 
     def __init__(self, msg):
         self.msg = msg
+        self.offset = 0
         self.parse()
 
     @staticmethod
@@ -66,33 +67,20 @@ class MQTTMessage(abc.ABC):
         message_flags = header_byte & 0x0F
         return message_type, message_flags, header_byte
 
-    def reset(self):
-        self.set_offset(0)
-
-    def set_offset(self, offset):
-        self.offset = offset
-
-    def skip(self, length) -> int:
-        self.offset += length
-        return self.offset
-
     def read(self, length) -> bytes:
         value = self.msg[self.offset:self.offset + length]
         self.offset += length
         return value
 
     def read_byte(self) -> int:
-        value = self.read(1)[0]
-        return value
+        return self.read(1)[0]
 
     def read_short(self) -> int:
-        value = struct.unpack('>H', self.read(2))[0]
-        return value
+        return struct.unpack('>H', self.read(2))[0]
 
     def read_string(self) -> str:
         str_len = self.read_short()
-        value = self.read(str_len).decode('utf-8')
-        return value
+        return self.read(str_len).decode('utf-8')
 
     def read_remaining_length(self) -> int:
         length = 0
@@ -107,18 +95,15 @@ class MQTTMessage(abc.ABC):
 
     def parse(self):
         self.message_type, self.message_flags, self.header_byte = MQTTMessage.__read_header(self.msg)
+        self.offset += 2
 
     @abc.abstractmethod
-    def handle_message(self, handler: ProtocolHandler, client: Client):
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
         raise NotImplementedError()
 
 class ConnectMessage(MQTTMessage):
-    def __init__(self, msg):
-        super().__init__(MESSAGE_TYPE_CONNECT, msg)
-
     def parse(self):
         super().parse()
-
         self.protocol_name = self.read_string()
         self.protocol_version = self.read_byte()
         self.connect_flags = self.read_byte()
@@ -154,44 +139,130 @@ class ConnectMessage(MQTTMessage):
         self.__is_authenticated = authenticator.authenticate(self.__username, self.__password)
         return self.__is_authenticated
 
-    def handle_message(self, handler: ProtocolHandler, client: Client):
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
         handler.handle_connect(client, self)
 
-
 class PublishMessage(MQTTMessage):
-    def __init__(self, msg):
-        super().__init__(MESSAGE_TYPE_PUBLISH, msg)
+    def parse(self):
+        super().parse()
+        self.remaining_length = self.read_remaining_length()
+        self.topic_name = self.read_string()
+        self.qos_level = (self.header_byte & 0x06) >> 1
 
+        if self.qos_level > 0:
+            self.packet_id = self.read_short()
+
+        payload_length = self.remaining_length - (self.offset - 2)
+        self.payload = self.read(payload_length)
+
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+        handler.handle_publish(client, self)
+
+class ConnAckMessage(MQTTMessage):
+    def parse(self):
+        super().parse()
+        self.ack_flags = self.read_byte()
+        self.return_code = self.read_byte()
+
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+        handler.handle_connack(client, self)
+
+class PubAckMessage(MQTTMessage):
+    def parse(self):
+        super().parse()
+        self.packet_id = self.read_short()
+
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+        handler.handle_puback(client, self)
+
+class PubRecMessage(MQTTMessage):
+    def parse(self):
+        super().parse()
+        self.packet_id = self.read_short()
+
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+        handler.handle_pubrec(client, self)
+
+class PubRelMessage(MQTTMessage):
+    def parse(self):
+        super().parse()
+        self.packet_id = self.read_short()
+
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+        handler.handle_pubrel(client, self)
+
+class PubCompMessage(MQTTMessage):
+    def parse(self):
+        super().parse()
+        self.packet_id = self.read_short()
+
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+        handler.handle_pubcomp(client, self)
+
+class SubscribeMessage(MQTTMessage):
+    def parse(self):
+        super().parse()
+        self.packet_id = self.read_short()
+        self.topics = []
+
+        while self.offset < len(self.msg):
+            topic = self.read_string()
+            qos = self.read_byte()
+            self.topics.append((topic, qos))
+
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+        handler.handle_subscribe(client, self)
+
+class SubAckMessage(MQTTMessage):
+    def parse(self):
+        super().parse()
+        self.packet_id = self.read_short()
+        self.return_codes = []
+
+        while self.offset < len(self.msg):
+            self.return_codes.append(self.read_byte())
+
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+        handler.handle_suback(client, self)
+
+class UnsubscribeMessage(MQTTMessage):
+    def parse(self):
+        super().parse()
+        self.packet_id = self.read_short()
+        self.topics = []
+
+        while self.offset < len(self.msg):
+            topic = self.read_string()
+            self.topics.append(topic)
+
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+        handler.handle_unsubscribe(client, self)
+
+class UnsubAckMessage(MQTTMessage):
+    def parse(self):
+        super().parse()
+        self.packet_id = self.read_short()
+
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+        handler.handle_unsuback(client, self)
+
+class PingReqMessage(MQTTMessage):
     def parse(self):
         super().parse()
 
-        self.remaining_length = self.read_remaining_length()
-        self.topic_name = self.read_string()
-        self.payload = self.read(self.remaining_length)
-        self.qos_level = (self.header_byte & 0x06) >> 1
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+        handler.handle_pingreq(client, self)
 
-        if (self.qos_level == 1):
-            self.packet_id = self.read_short()
+class PingRespMessage(MQTTMessage):
+    def parse(self):
+        super().parse()
 
-    def __read_authentication(self):
-        if self.connect_flags & 0x80:
-            self.__username = self.read_string()
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+        handler.handle_pingresp(client, self)
 
-            if not self.__username:
-                raise ValueError('Username flag is set but no username provided')
+class DisconnectMessage(MQTTMessage):
+    def parse(self):
+        super().parse()
 
-        if self.connect_flags & 0x40:
-            self.__password = self.read_string()
-
-            if not self.__password:
-                raise ValueError('Password flag is set but no password provided')
-
-    def authenticate(self, authenticator: Authenticator):
-        if not self.needs_authentication or self.__is_authenticated:
-            return True
-
-        self.__is_authenticated = authenticator.authenticate(self.__username, self.__password)
-        return self.__is_authenticated
-
-    def handle_message(self, handler: ProtocolHandler, client: Client):
-        handler.handle_connect(client, self)
+    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+        handler.handle_disconnect(client, self)
