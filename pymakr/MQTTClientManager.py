@@ -1,8 +1,9 @@
-import MQTTLogger
+from MQTTLogger import Logger
 
 class ClientManager:
-    def __init__(self):
+    def __init__(self, logger = None):
         self.clients = {}
+        self.logger = logger or Logger()
 
     def add_client(self, client_socket):
         self.clients[client_socket] = {}
@@ -11,20 +12,9 @@ class ClientManager:
         if client_socket in self.clients:
             del self.clients[client_socket]
 
-    def get_client_by_id(self, client_id):
-        return self.clients.get(client_id)
-
     def cleanup_clients(self):
         for client in list(self.clients.keys()):
             if not self.is_socket_open(client):
-                MQTTLogger.warning(f'Removing closed client: {client}', True)
+                self.logger.warning(f'Removing closed client: {client}')
                 self.remove_client(client)
                 client.close()
-
-    @staticmethod
-    def is_socket_open(sock):
-        try:
-            sock.send(b'')
-            return True
-        except OSError:
-            return False

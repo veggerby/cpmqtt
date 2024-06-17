@@ -1,15 +1,17 @@
-import MQTTLogger
 import struct
+from MQTTLogger import Logger
 
 class ProtocolHandler:
     SUPPORTED_PROTOCOLS = ['MQTT']
 
-    @staticmethod
-    def handle_connect(client, msg, broker):
+    def __init__(self, logger = None):
+        self.logger = logger or Logger()
+
+    def handle_connect(self, client, msg, broker):
         try:
             protocol_name_len = struct.unpack('>H', msg[2:4])[0]
             protocol_name = msg[4:4 + protocol_name_len].decode('utf-8')
-            MQTTLogger.debug(f'Protocol Name: {protocol_name}', broker.debug)
+            self.logger.debug(f'Protocol Name: {protocol_name}')
 
             if protocol_name not in ProtocolHandler.SUPPORTED_PROTOCOLS:
                 raise ValueError('Unsupported protocol')
@@ -30,19 +32,18 @@ class ProtocolHandler:
             return_code = 0  # Connection Accepted
             connack = struct.pack('>BB', 32, 2) + struct.pack('BB', connack_flags, return_code)
             client.send(connack)
-            MQTTLogger.debug(f'Client connected: {client_id}', broker.debug)
+            self.logger.debug(f'Client connected: {client_id}')
 
         except ValueError as ve:
-            MQTTLogger.error(f'Error in handle_connect: {ve}', broker.debug)
+            self.logger.error(f'Error in handle_connect: {ve}')
             client.send(struct.pack('>BB', 32, 2) + struct.pack('BB', 0, 1))  # Connection Refused, unacceptable protocol version
             client.close()
         except Exception as e:
-            MQTTLogger.error(f'Error in handle_connect: {e}', broker.debug)
+            self.logger.error(f'Error in handle_connect: {e}')
             client.send(struct.pack('>BB', 32, 2) + struct.pack('BB', 0, 2))  # Connection Refused, identifier rejected
             client.close()
 
-    @staticmethod
-    def handle_authentication(client, connect_flags, msg, protocol_name_len, client_id_len, broker):
+    def handle_authentication(self, client, connect_flags, msg, protocol_name_len, client_id_len, broker):
         index = 12 + protocol_name_len + client_id_len
         username = None
         password = None
@@ -64,8 +65,7 @@ class ProtocolHandler:
         elif connect_flags & 0xC0:
             raise ValueError('Username or Password flag is set but no credentials provided')
 
-    @staticmethod
-    def handle_publish(client, msg, broker):
+    def handle_publish(self, client, msg, broker):
         try:
             fixed_header_len = 1 + 1  # Control Packet Type + Remaining Length
             remaining_length = msg[1]
@@ -80,9 +80,9 @@ class ProtocolHandler:
             if not topic:
                 raise ValueError('Topic must not be empty')
 
-            MQTTLogger.receive(f'Received message: {payload} on topic: {topic}', broker.debug)
+            self.logger.receive(f'Received message: {payload} on topic: {topic}')
             broker.topic_manager.publish(topic, msg)
-            MQTTLogger.send(f'{payload} published to topic: {topic}', broker.debug)
+            self.logger.send(f'{payload} published to topic: {topic}')
 
             qos_level = (msg[0] & 0x06) >> 1
             if qos_level == 1:  # QoS 1
@@ -93,10 +93,9 @@ class ProtocolHandler:
                 raise NotImplementedError('QoS 2 not supported')
 
         except Exception as e:
-            MQTTLogger.error(f'Error in handle_publish: {e}', broker.debug)
+            self.logger.error(f'Error in handle_publish: {e}')
 
-    @staticmethod
-    def handle_subscribe(client, msg, broker):
+    def handle_subscribe(self, client, msg, broker):
         try:
             packet_id = struct.unpack('>H', msg[2:4])[0]
             index = 4
@@ -116,15 +115,14 @@ class ProtocolHandler:
                 broker.topic_manager.subscribe(topic, client)
                 topics.append((topic, qos))
 
-            MQTTLogger.info(f"Client subscribed to topics: {topics}", broker.debug)
+            self.logger.info(f"Client subscribed to topics: {topics}")
             suback = struct.pack('>BBH', 0x90, 2 + len(topics), packet_id) + bytes([qos for topic, qos in topics])
             client.send(suback)
 
         except Exception as e:
-            MQTTLogger.error(f'Error in handle_subscribe: {e}', broker.debug)
+            self.logger.error(f'Error in handle_subscribe: {e}')
 
-    @staticmethod
-    def handle_unsubscribe(client, msg, broker):
+    def handle_unsubscribe(self, client, msg, broker):
         try:
             packet_id = struct.unpack('>H', msg[2:4])[0]
             index = 4
@@ -142,26 +140,24 @@ class ProtocolHandler:
                 broker.topic_manager.unsubscribe(topic, client)
                 topics.append(topic)
 
-            MQTTLogger.info(f"Client unsubscribed from topics: {topics}", broker.debug)
+            self.logger.info(f"Client unsubscribed from topics: {topics}")
             unsuback = struct.pack('>BBH', 0xB0, 2, packet_id)
             client.send(unsuback)
 
         except Exception as e:
-            MQTTLogger.error(f'Error in handle_unsubscribe: {e}', broker.debug)
+            self.logger.error(f'Error in handle_unsubscribe: {e}')
 
-    @staticmethod
-    def send_pingresp(client, broker):
+    def send_pingresp(self, client, broker):
         try:
             client.send(b'\xD0\x00')
-            MQTTLogger.send('PINGRESP sent to client', broker.debug)
+            self.logger.send('PINGRESP sent to client')
         except Exception as e:
-            MQTTLogger.error(f'Error sending PINGRESP: {e}', broker.debug)
+            self.logger.error(f'Error sending PINGRESP: {e}')
 
-    @staticmethod
-    def handle_disconnect(client, broker):
+    def handle_disconnect(self, client, broker):
         try:
-            MQTTLogger.info('Client disconnected', broker.debug)
+            self.logger.info('Client disconnected')
             broker.client_manager.remove_client(client)
             client.close()
         except Exception as e:
-            MQTTLogger.error(f'Error handling disconnect: {e}', broker.debug)
+            self.logger.error(f'Error handling disconnect: {e}')

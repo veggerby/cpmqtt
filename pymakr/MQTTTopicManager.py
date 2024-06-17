@@ -1,8 +1,9 @@
-import MQTTLogger
+import MQTTLogger as Logger
 
 class TopicManager:
-    def __init__(self):
+    def __init__(self, logger = None):
         self.topics = {}
+        self.logger = logger or Logger()
 
     def subscribe(self, topic, client):
         if topic not in self.topics:
@@ -21,7 +22,7 @@ class TopicManager:
                 try:
                     subscriber.send(msg)
                 except OSError as e:
-                    MQTTLogger.error(f'Error forwarding message to subscriber: {e}', True)
+                    self.logger.error(f'Error forwarding message to subscriber: {e}')
                     self.topics[topic].remove(subscriber)
         else:
-            MQTTLogger.warning(f'No subscribers for topic: {topic}', True)
+            self.logger.warning(f'No subscribers for topic: {topic}')
