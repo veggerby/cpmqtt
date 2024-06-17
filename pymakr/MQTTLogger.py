@@ -1,3 +1,5 @@
+# import ulogging as logging
+
 class Logger:
     HEADER = '\033[95m'
     SEND = '\033[94m'

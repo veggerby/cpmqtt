@@ -1,3 +1,4 @@
+from asyncio import BaseTransport
 import socket
 import traceback
 from MQTTLogger import Logger
@@ -17,23 +18,24 @@ class ClientSettings:
         self.keep_alive = keep_alive
 
 class Client:
-    client_socket: socket.socket
+    client_name: str
     settings: ClientSettings
 
-    def __init__(self, client_socket: socket.socket, logger = None):
-        self.client_socket = client_socket
+    def __init__(self, client_name: str, transport: BaseTransport, logger = None):
+        self.client_name = client_name
+        self.transport = transport
         self.logger = logger or Logger()
 
     def is_ready(self):
         try:
-            self.client_socket.send(b'')
+            self.transport.write(b'')
             return True
         except OSError:
             return False
 
     def send(self, msg):
         try:
-            self.client_socket.send(msg)
+            self.transport.write(msg)
         except OSError as e:
             self.logger.error(f'Error sending message to client: {e}, {traceback.format_exc()}')
 
@@ -41,6 +43,6 @@ class Client:
         self.logger.info('Closing client connection')
 
         try:
-            self.client_socket.close()
+            self.transport.close()
         except OSError as e:
             self.logger.error(f'Error closing client connection: {e}, {traceback.format_exc()}')

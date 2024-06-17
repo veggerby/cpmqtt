@@ -21,6 +21,8 @@ MESSAGE_TYPE_PINGRESP = 13
 MESSAGE_TYPE_DISCONNECT = 14
 
 class MQTTMessage(abc.ABC):
+    msg: bytes
+
     @staticmethod
     def create(msg) -> 'MQTTMessage':
         message_type, _, _ = MQTTMessage.__read_header(msg)
@@ -55,7 +57,7 @@ class MQTTMessage(abc.ABC):
         else:
             raise ValueError(f'Unsupported message type: {message_type}')
 
-    def __init__(self, msg):
+    def __init__(self, msg: bytes):
         self.msg = msg
         self.offset = 0
         self.parse()
@@ -80,18 +82,11 @@ class MQTTMessage(abc.ABC):
 
     def read_string(self) -> str:
         str_len = self.read_short()
-        return self.read(str_len).decode('utf-8')
+        str_buf = self.read(str_len)
+        return str_buf.decode('utf-8')
 
-    def read_remaining_length(self) -> int:
-        length = 0
-        multiplier = 1
-        while True:
-            encoded_byte = self.read_byte()
-            length += (encoded_byte & 127) * multiplier
-            if (encoded_byte & 128) == 0:
-                break
-            multiplier *= 128
-        return length
+    def read_rest(self) -> bytes:
+        return self.read(len(self.msg) - self.offset)
 
     def parse(self):
         self.message_type, self.message_flags, self.header_byte = MQTTMessage.__read_header(self.msg)
@@ -145,15 +140,13 @@ class ConnectMessage(MQTTMessage):
 class PublishMessage(MQTTMessage):
     def parse(self):
         super().parse()
-        self.remaining_length = self.read_remaining_length()
         self.topic_name = self.read_string()
         self.qos_level = (self.header_byte & 0x06) >> 1
 
         if self.qos_level > 0:
             self.packet_id = self.read_short()
 
-        payload_length = self.remaining_length - (self.offset - 2)
-        self.payload = self.read(payload_length)
+        self.payload = self.read_rest()
 
     def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
         handler.handle_publish(client, self)
