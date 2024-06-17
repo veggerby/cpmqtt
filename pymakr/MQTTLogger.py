@@ -1,4 +1,4 @@
-class MQTTLogger:
+class Logger:
     HEADER = '\033[95m'
     SEND = '\033[94m'
     RECEIVE = '\033[96m'
@@ -9,32 +9,29 @@ class MQTTLogger:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-    @staticmethod
-    def debug(message, debug):
-        if debug:
-            print(f'{MQTTLogger.HEADER}{message}{MQTTLogger.CLEAR}')
+    debug = True
 
-    @staticmethod
-    def info(message, debug):
-        if debug:
-            print(f'{MQTTLogger.INFO}{message}{MQTTLogger.CLEAR}')
+    def __init__(self, debug) -> None:
+        self.debug = debug
 
-    @staticmethod
-    def warning(message, debug):
-        if debug:
-            print(f'{MQTTLogger.WARNING}{message}{MQTTLogger.CLEAR}')
+    def log(self, flags, message):
+        if self.debug:
+            print(f'{flags}{message}{Logger.CLEAR}')
 
-    @staticmethod
-    def error(message, debug):
-        if debug:
-            print(f'{MQTTLogger.ERROR}{message}{MQTTLogger.CLEAR}')
+    def debug(self, message):
+        self.log(Logger.HEADER, message)
 
-    @staticmethod
-    def send(message, debug):
-        if debug:
-            print(f'{MQTTLogger.SEND}{message}{MQTTLogger.CLEAR}')
+    def info(self, message):
+        self.log(Logger.INFO, message)
 
-    @staticmethod
-    def receive(message, debug):
-        if debug:
-            print(f'{MQTTLogger.RECEIVE}{message}{MQTTLogger.CLEAR}')
+    def warning(self, message):
+        self.log(Logger.WARNING, message)
+
+    def error(self, message):
+        self.log(Logger.ERROR, message)
+
+    def send(self, message):
+        self.log(Logger.SEND, message)
+
+    def receive(self, message):
+        self.log(Logger.RECEIVE, message)
