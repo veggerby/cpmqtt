@@ -10,11 +10,11 @@ class ClientManager:
         self.logger = logger or Logger()
 
     def get_client(self, client_socket):
-        client = self.clients[client_socket]
+        if client_socket in self.clients:
+            return self.clients[client_socket]
 
-        if client is None:
-            client = Client(client_socket, self.logger)
-            self.clients[client_socket] = client
+        client = Client(client_socket, self.logger)
+        self.clients[client_socket] = client
 
         return client
 
@@ -25,8 +25,9 @@ class ClientManager:
             client.close()
 
     def cleanup_clients(self):
-        for client in list(self.clients.keys()):
-            if not self.is_ready(client):
+        for client_socket in list(self.clients.keys()):
+            client = self.clients[client_socket]
+            if not client.is_ready():
                 self.logger.warning(f'Removing closed client: {client}')
                 self.remove_client(client)
                 client.close()

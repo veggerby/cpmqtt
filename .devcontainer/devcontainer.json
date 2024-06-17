@@ -19,10 +19,12 @@
 				"pycom.Pymakr"
 			]
 		}
-	}
+	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	"forwardPorts": [
+    1883
+  ],
 
 	// Configure tool-specific properties.
 	// "customizations": {},

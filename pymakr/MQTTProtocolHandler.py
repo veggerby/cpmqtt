@@ -1,9 +1,12 @@
 import struct
+import traceback
 from MQTTLogger import Logger
-from MQTTBroker import MQTTBroker
 from MQTTClient import Client, ClientSettings
 from MQTTProtocolHandlerInterface import ProtocolHandlerInterface
 from MQTTMessage import ConnectMessage, MQTTMessage, PublishMessage
+from MQTTClientManager import ClientManager
+from MQTTAuthenticator import Authenticator
+from MQTTTopicManager import TopicManager
 
 MESSAGE_TYPE_CONNECT = 1
 MESSAGE_TYPE_CONNACK = 2
@@ -23,8 +26,10 @@ MESSAGE_TYPE_DISCONNECT = 14
 class ProtocolHandler(ProtocolHandlerInterface):
     SUPPORTED_PROTOCOLS = ['MQTT']
 
-    def __init__(self, broker: MQTTBroker, logger=None):
-        self.broker = broker
+    def __init__(self, authenticator: Authenticator, topic_manager: TopicManager, client_manager: ClientManager, logger=None):
+        self.authenticator = authenticator
+        self.topic_manager = topic_manager
+        self.client_manager = client_manager
         self.logger = logger or Logger()
 
     def handle(self, client: Client, msg):
@@ -33,19 +38,18 @@ class ProtocolHandler(ProtocolHandlerInterface):
         if (not issubclass(type(message), MQTTMessage)):
             raise ValueError('Unsupported message type')
 
-        message.handle_message(self.broker, client)
+        message.handle_message(self, client)
 
     def handle_connect(self, client: Client, connect_message: ConnectMessage):
         try:
             client.settings = ClientSettings(
-                client_id=connect_message.client_id,
-                protocol_name=connect_message.protocol_name,
-                protocol_version=connect_message.protocol_version,
-                connect_flags=connect_message.connect_flags,
-                keep_alive=connect_message.keep_alive
-            )
+                connect_message.client_id,
+                connect_message.protocol_name,
+                connect_message.protocol_version,
+                connect_message.connect_flags,
+                connect_message.keep_alive)
 
-            self.logger.debug(f'Protocol Name: {client.settings.protocol_name}')
+            self.logger.debug(f'Protocol Name: {client.settings.protocol_name} {client.settings.protocol_version} from {client.settings.client_id} - {client.settings.connect_flags} - {client.settings.keep_alive}')
 
             if client.settings.protocol_name not in ProtocolHandler.SUPPORTED_PROTOCOLS:
                 raise ValueError('Unsupported protocol')
@@ -53,7 +57,7 @@ class ProtocolHandler(ProtocolHandlerInterface):
             if not client.settings.client_id:
                 raise ValueError('Client ID must not be empty')
 
-            if not connect_message.authenticate(self.broker.authenticator):
+            if not connect_message.authenticate(self.authenticator):
                 raise ValueError('Authentication failed')
 
             conn_ack_flags = 0
@@ -67,7 +71,7 @@ class ProtocolHandler(ProtocolHandlerInterface):
             client.send(struct.pack('>BB', 32, 2) + struct.pack('BB', 0, 1))  # Connection Refused, unacceptable protocol version
             client.close()
         except Exception as e:
-            self.logger.error(f'Error in handle_connect: {e}')
+            self.logger.error(f'Error in handle_connect: {e}, {traceback.format_exc()}')
             client.send(struct.pack('>BB', 32, 2) + struct.pack('BB', 0, 2))  # Connection Refused, identifier rejected
             client.close()
 
@@ -77,7 +81,7 @@ class ProtocolHandler(ProtocolHandlerInterface):
                 raise ValueError('Topic must not be empty')
 
             self.logger.receive(f'Received message: {publish_message.payload} on topic: {publish_message.topic_name}')
-            self.broker.topic_manager.publish(publish_message.topic_name, publish_message)
+            self.topic_manager.publish(publish_message.topic_name, publish_message)
             self.logger.send(f'{publish_message.payload} published to topic: {publish_message.topic_name}')
 
             if publish_message.qos_level == 1:  # QoS 1
@@ -87,14 +91,14 @@ class ProtocolHandler(ProtocolHandlerInterface):
                 raise NotImplementedError('QoS 2 not supported')
 
         except Exception as e:
-            self.logger.error(f'Error in handle_publish: {e}')
+            self.logger.error(f'Error in handle_publish: {e}, {traceback.format_exc()}')
 
     def handle_puback(self, client: Client, mqtt_message: MQTTMessage):
         try:
             packet_id = mqtt_message.read_short()
             self.logger.debug(f'PUBACK received for packet ID: {packet_id}')
         except Exception as e:
-            self.logger.error(f'Error in handle_puback: {e}')
+            self.logger.error(f'Error in handle_puback: {e}, {traceback.format_exc()}')
 
     def handle_pubrec(self, client: Client, mqtt_message: MQTTMessage):
         try:
@@ -103,7 +107,7 @@ class ProtocolHandler(ProtocolHandlerInterface):
             client.send(pubrel)
             self.logger.debug(f'PUBREC received for packet ID: {packet_id}')
         except Exception as e:
-            self.logger.error(f'Error in handle_pubrec: {e}')
+            self.logger.error(f'Error in handle_pubrec: {e}, {traceback.format_exc()}')
 
     def handle_pubrel(self, client: Client, mqtt_message: MQTTMessage):
         try:
@@ -112,14 +116,14 @@ class ProtocolHandler(ProtocolHandlerInterface):
             client.send(pubcomp)
             self.logger.debug(f'PUBREL received for packet ID: {packet_id}')
         except Exception as e:
-            self.logger.error(f'Error in handle_pubrel: {e}')
+            self.logger.error(f'Error in handle_pubrel: {e}, {traceback.format_exc()}')
 
     def handle_pubcomp(self, client: Client, mqtt_message: MQTTMessage):
         try:
             packet_id = mqtt_message.read_short()
             self.logger.debug(f'PUBCOMP received for packet ID: {packet_id}')
         except Exception as e:
-            self.logger.error(f'Error in handle_pubcomp: {e}')
+            self.logger.error(f'Error in handle_pubcomp: {e}, {traceback.format_exc()}')
 
     def handle_subscribe(self, client: Client, mqtt_message: MQTTMessage):
         try:
@@ -133,7 +137,7 @@ class ProtocolHandler(ProtocolHandlerInterface):
                 if not topic:
                     raise ValueError('Topic must not be empty')
 
-                self.broker.topic_manager.subscribe(topic, client)
+                self.topic_manager.subscribe(topic, client)
                 topics.append((topic, qos))
 
             self.logger.info(f"Client subscribed to topics: {topics}")
@@ -141,14 +145,14 @@ class ProtocolHandler(ProtocolHandlerInterface):
             client.send(sub_ack)
 
         except Exception as e:
-            self.logger.error(f'Error in handle_subscribe: {e}')
+            self.logger.error(f'Error in handle_subscribe: {e}, {traceback.format_exc()}')
 
     def handle_suback(self, client: Client, mqtt_message: MQTTMessage):
         try:
             packet_id = mqtt_message.read_short()
             self.logger.debug(f'SUBACK received for packet ID: {packet_id}')
         except Exception as e:
-            self.logger.error(f'Error in handle_suback: {e}')
+            self.logger.error(f'Error in handle_suback: {e}, {traceback.format_exc()}')
 
     def handle_unsubscribe(self, client: Client, mqtt_message: MQTTMessage):
         try:
@@ -161,7 +165,7 @@ class ProtocolHandler(ProtocolHandlerInterface):
                 if not topic:
                     raise ValueError('Topic must not be empty')
 
-                self.broker.topic_manager.unsubscribe(topic, client)
+                self.topic_manager.unsubscribe(topic, client)
                 topics.append(topic)
 
             self.logger.info(f"Client unsubscribed from topics: {topics}")
@@ -169,21 +173,21 @@ class ProtocolHandler(ProtocolHandlerInterface):
             client.send(unsub_ack)
 
         except Exception as e:
-            self.logger.error(f'Error in handle_unsubscribe: {e}')
+            self.logger.error(f'Error in handle_unsubscribe: {e}, {traceback.format_exc()}')
 
     def handle_unsuback(self, client: Client, mqtt_message: MQTTMessage):
         try:
             packet_id = mqtt_message.read_short()
             self.logger.debug(f'UNSUBACK received for packet ID: {packet_id}')
         except Exception as e:
-            self.logger.error(f'Error in handle_unsuback: {e}')
+            self.logger.error(f'Error in handle_unsuback: {e}, {traceback.format_exc()}')
 
     def handle_pingreq(self, client: Client, mqtt_message: MQTTMessage):
         try:
             client.send(b'\xD0\x00')
             self.logger.send('PINGRESP sent to client')
         except Exception as e:
-            self.logger.error(f'Error sending PINGRESP: {e}')
+            self.logger.error(f'Error sending PINGRESP: {e}, {traceback.format_exc()}')
 
     def handle_pingresp(self, client: Client, mqtt_message: MQTTMessage):
         self.logger.debug('PINGRESP received')
@@ -191,7 +195,7 @@ class ProtocolHandler(ProtocolHandlerInterface):
     def handle_disconnect(self, client: Client, mqtt_message: MQTTMessage):
         try:
             self.logger.info('Client disconnected')
-            self.broker.client_manager.remove_client(client)
+            self.client_manager.remove_client(client)
             client.close()
         except Exception as e:
-            self.logger.error(f'Error handling disconnect: {e}')
+            self.logger.error(f'Error handling disconnect: {e}, {traceback.format_exc()}')
