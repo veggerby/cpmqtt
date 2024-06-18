@@ -196,9 +196,13 @@ class SubscribeMessage(MQTTMessage):
     def parse(self):
         super().parse()
         self.packet_id = self.read_short()
+
+        rest = self.read_rest()
+        print(f'Subscribe message packet ID: {self.packet_id}, {self.message_type}, {self.message_flags}, {rest!r}')
         self.topics = []
 
         while self.offset < len(self.msg):
+            _ = self.read_byte()
             topic = self.read_string()
             qos = self.read_byte()
             self.topics.append((topic, qos))
