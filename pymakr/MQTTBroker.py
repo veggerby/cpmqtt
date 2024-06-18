@@ -8,7 +8,7 @@ from MQTTLogger import Logger
 from MQTTAuthenticator import Authenticator
 from MQTTClientManager import ClientManager
 from MQTTProtocolHandler import ProtocolHandler
-from MQTTTopicManager import TopicManager
+from MQTTSubscriptionManager import SubscriberManager
 
 import asyncio
 # import uasyncio as asyncio
@@ -49,7 +49,7 @@ class MQTTBroker:
     rgb_led: int
     logger: Logger
     client_manager: ClientManager
-    topic_manager: TopicManager
+    topic_manager: SubscriberManager
     protocol_handler: ProtocolHandler
     authenticator: Authenticator
 
@@ -59,7 +59,7 @@ class MQTTBroker:
         self.rgb_led = rgb_led
         self.logger = logger or Logger(True)
         self.client_manager = ClientManager(self.logger)
-        self.topic_manager = TopicManager(self.logger)
+        self.topic_manager = SubscriberManager(self.logger)
         self.authenticator = authenticator or Authenticator(
             {"admin": "password"}, self.logger)
         self.protocol_handler = ProtocolHandler(
