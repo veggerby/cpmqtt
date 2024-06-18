@@ -26,6 +26,8 @@
     1883
   ],
 
+  "postCreateCommand": ".devcontainer/scripts/post_create.sh",
+
 	// Configure tool-specific properties.
 	// "customizations": {},
 
