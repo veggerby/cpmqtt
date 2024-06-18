@@ -3,36 +3,36 @@ import traceback
 from MQTTLogger import Logger
 from MQTTClient import Client, ClientSettings
 from MQTTProtocolHandlerInterface import ProtocolHandlerInterface
-from MQTTMessage import ConnectMessage, MQTTMessage, PublishMessage, SubscribeMessage
+from MQTTMessage import ConnAckMessage, ConnectMessage, DisconnectMessage, MQTTMessage, PingReqMessage, PingRespMessage, PubAckMessage, PublishMessage, SubAckMessage, SubscribeMessage, UnSubAckMessage, UnsubscribeMessage
 from MQTTClientManager import ClientManager
 from MQTTAuthenticator import Authenticator
-from MQTTTopicManager import TopicManager
+from MQTTSubscriptionManager import SubscriberManager
 
-MESSAGE_TYPE_CONNECT = 1
-MESSAGE_TYPE_CONNACK = 2
-MESSAGE_TYPE_PUBLISH = 3
-MESSAGE_TYPE_PUBACK = 4
-MESSAGE_TYPE_PUBREC = 5
-MESSAGE_TYPE_PUBREL = 6
-MESSAGE_TYPE_PUBCOMP = 7
-MESSAGE_TYPE_SUBSCRIBE = 8
-MESSAGE_TYPE_SUBACK = 9
-MESSAGE_TYPE_UNSUBSCRIBE = 10
-MESSAGE_TYPE_UNSUBACK = 11
-MESSAGE_TYPE_PINGREQ = 12
-MESSAGE_TYPE_PINGRESP = 13
-MESSAGE_TYPE_DISCONNECT = 14
+PACKET_TYPE_CONNECT = 1
+PACKET_TYPE_CONNACK = 2
+PACKET_TYPE_PUBLISH = 3
+PACKET_TYPE_PUBACK = 4
+PACKET_TYPE_PUBREC = 5
+PACKET_TYPE_PUBREL = 6
+PACKET_TYPE_PUBCOMP = 7
+PACKET_TYPE_SUBSCRIBE = 8
+PACKET_TYPE_SUBACK = 9
+PACKET_TYPE_UNSUBSCRIBE = 10
+PACKET_TYPE_UNSUBACK = 11
+PACKET_TYPE_PINGREQ = 12
+PACKET_TYPE_PINGRESP = 13
+PACKET_TYPE_DISCONNECT = 14
 
 class ProtocolHandler(ProtocolHandlerInterface):
     SUPPORTED_PROTOCOLS = ['MQTT']
 
-    def __init__(self, authenticator: Authenticator, topic_manager: TopicManager, client_manager: ClientManager, logger=None):
+    def __init__(self, authenticator: Authenticator, topic_manager: SubscriberManager, client_manager: ClientManager, logger=None):
         self.authenticator = authenticator
         self.topic_manager = topic_manager
         self.client_manager = client_manager
         self.logger = logger or Logger()
 
-    def handle(self, client: Client, msg):
+    def handle(self, client: Client, msg: bytes):
         try:
             message = MQTTMessage.create(msg)
 
@@ -63,19 +63,16 @@ class ProtocolHandler(ProtocolHandlerInterface):
             if not connect_message.authenticate(self.authenticator):
                 raise ValueError('Authentication failed')
 
-            conn_ack_flags = 0
-            return_code = 0  # Connection Accepted
-            conn_ack = struct.pack('>BB', 32, 2) + struct.pack('BB', conn_ack_flags, return_code)
-            client.send(conn_ack)
+            ConnAckMessage(0, 0).send_to(client)
             self.logger.debug(f'Client connected: {client.settings.client_id}')
 
         except ValueError as ve:
             self.logger.error(f'Error in handle_connect: {ve}')
-            client.send(struct.pack('>BB', 32, 2) + struct.pack('BB', 0, 1))  # Connection Refused, unacceptable protocol version
+            ConnAckMessage(0, 1).send_to(client) # Connection Refused, unacceptable protocol version
             client.close()
         except Exception as e:
             self.logger.error(f'Error in handle_connect: {e}, {traceback.format_exc()}')
-            client.send(struct.pack('>BB', 32, 2) + struct.pack('BB', 0, 2))  # Connection Refused, identifier rejected
+            ConnAckMessage(0, 2).send_to(client) # Connection Refused, identifier rejected
             client.close()
 
     def handle_publish(self, client: Client, publish_message: PublishMessage):
@@ -87,105 +84,45 @@ class ProtocolHandler(ProtocolHandlerInterface):
             self.topic_manager.publish(publish_message.topic_name, publish_message)
             self.logger.send(f'{publish_message.payload} published to topic: {publish_message.topic_name}')
 
-            if publish_message.qos_level == 1:  # QoS 1
-                pub_ack = struct.pack('>BBH', 64, 2, publish_message.packet_id)
-                client.send(pub_ack)
-            elif publish_message.qos_level == 2:  # QoS 2
+            if publish_message.qos == 1:  # QoS 1
+                PubAckMessage(publish_message).send_to(client)
+            elif publish_message.qos == 2:  # QoS 2
                 raise NotImplementedError('QoS 2 not supported')
 
         except Exception as e:
             self.logger.error(f'Error in handle_publish: {e}, {traceback.format_exc()}')
 
-    def handle_puback(self, client: Client, mqtt_message: MQTTMessage):
-        try:
-            packet_id = mqtt_message.read_short()
-            self.logger.debug(f'PUBACK received for packet ID: {packet_id}')
-        except Exception as e:
-            self.logger.error(f'Error in handle_puback: {e}, {traceback.format_exc()}')
-
-    def handle_pubrec(self, client: Client, mqtt_message: MQTTMessage):
-        try:
-            packet_id = mqtt_message.read_short()
-            pubrel = struct.pack('>BBH', 0x62, 2, packet_id)
-            client.send(pubrel)
-            self.logger.debug(f'PUBREC received for packet ID: {packet_id}')
-        except Exception as e:
-            self.logger.error(f'Error in handle_pubrec: {e}, {traceback.format_exc()}')
-
-    def handle_pubrel(self, client: Client, mqtt_message: MQTTMessage):
-        try:
-            packet_id = mqtt_message.read_short()
-            pubcomp = struct.pack('>BBH', 0x70, 2, packet_id)
-            client.send(pubcomp)
-            self.logger.debug(f'PUBREL received for packet ID: {packet_id}')
-        except Exception as e:
-            self.logger.error(f'Error in handle_pubrel: {e}, {traceback.format_exc()}')
-
-    def handle_pubcomp(self, client: Client, mqtt_message: MQTTMessage):
-        try:
-            packet_id = mqtt_message.read_short()
-            self.logger.debug(f'PUBCOMP received for packet ID: {packet_id}')
-        except Exception as e:
-            self.logger.error(f'Error in handle_pubcomp: {e}, {traceback.format_exc()}')
-
     def handle_subscribe(self, client: Client, subscribe_message: SubscribeMessage):
         try:
-            for topic, qos in subscribe_message.topics:
-                self.topic_manager.subscribe(topic, client)
+            self.topic_manager.subscribe(subscribe_message.topic, client)
 
-            self.logger.info(f"Client subscribed to topics: {subscribe_message.topics}")
-            sub_ack = struct.pack('>BBH', 0x90, 2 + len(subscribe_message.topics), subscribe_message.packet_id) + bytes([qos for topic, qos in subscribe_message.topics])
-            client.send(sub_ack)
+            self.logger.info(f"Client subscribed to topics: {subscribe_message.topic}")
+
+            SubAckMessage(subscribe_message).send_to(client)
 
         except Exception as e:
             self.logger.error(f'Error in handle_subscribe: {e}, {traceback.format_exc()}')
 
-    def handle_suback(self, client: Client, mqtt_message: MQTTMessage):
+    def handle_unsubscribe(self, client: Client, unsubscribe_message: UnsubscribeMessage):
         try:
-            packet_id = mqtt_message.read_short()
-            self.logger.debug(f'SUBACK received for packet ID: {packet_id}')
-        except Exception as e:
-            self.logger.error(f'Error in handle_suback: {e}, {traceback.format_exc()}')
+            self.topic_manager.unsubscribe(unsubscribe_message.topic, client)
 
-    def handle_unsubscribe(self, client: Client, mqtt_message: MQTTMessage):
-        try:
-            packet_id = mqtt_message.read_short()
-            topics = []
+            self.logger.info(f"Client unsubscribed from topics: {unsubscribe_message.topic}")
 
-            while mqtt_message.offset < len(mqtt_message.msg):
-                topic = mqtt_message.read_string()
-
-                if not topic:
-                    raise ValueError('Topic must not be empty')
-
-                self.topic_manager.unsubscribe(topic, client)
-                topics.append(topic)
-
-            self.logger.info(f"Client unsubscribed from topics: {topics}")
-            unsub_ack = struct.pack('>BBH', 0xB0, 2, packet_id)
-            client.send(unsub_ack)
+            UnSubAckMessage(unsubscribe_message).send_to(client)
 
         except Exception as e:
             self.logger.error(f'Error in handle_unsubscribe: {e}, {traceback.format_exc()}')
 
-    def handle_unsuback(self, client: Client, mqtt_message: MQTTMessage):
+    def handle_pingreq(self, client: Client, pingreq_message: PingReqMessage):
         try:
-            packet_id = mqtt_message.read_short()
-            self.logger.debug(f'UNSUBACK received for packet ID: {packet_id}')
-        except Exception as e:
-            self.logger.error(f'Error in handle_unsuback: {e}, {traceback.format_exc()}')
+            self.logger.info('Received PINGREQ')
+            PingRespMessage(pingreq_message).send_to(client)
 
-    def handle_pingreq(self, client: Client, mqtt_message: MQTTMessage):
-        try:
-            client.send(b'\xD0\x00')
-            self.logger.send('PINGRESP sent to client')
         except Exception as e:
             self.logger.error(f'Error sending PINGRESP: {e}, {traceback.format_exc()}')
 
-    def handle_pingresp(self, client: Client, mqtt_message: MQTTMessage):
-        self.logger.debug('PINGRESP received')
-
-    def handle_disconnect(self, client: Client, mqtt_message: MQTTMessage):
+    def handle_disconnect(self, client: Client, disconnect_message: DisconnectMessage):
         try:
             self.logger.info('Client disconnected')
             self.client_manager.remove_client(client)

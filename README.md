@@ -11,7 +11,7 @@
    * [x] Kan sende beskeder til Android App myMQTT
  * [x] Kan håndtere at ESP32 `uMQTT.robust` forbinder til enheden
    * [x] Kan modtage beskeder fra ESP32 `uMQTT.robust`
-   * [x] Kan sende beskeder til ESP32 `uMQTT.robust` 
+   * [x] Kan sende beskeder til ESP32 `uMQTT.robust`
 
  #### ***mqtt klienter Ping/Pong - Test***:
  * [x] Kan forbinde til RPI Zero Broker
@@ -34,3 +34,17 @@
    - [ ] opsætning af egen broker på ESP32, test med MQTTx sammen med en med-pirat
    - [ ] opsætning af klient, der for binder til broker. Test publish og subscribe MQTTx. eventuelt ekstra opgaver med at sende data fra BME280
    - [ ] Intro Node-Red dashboard. sende målinger fra BME280 til dashboard
+
+## mqttx-cli
+
+Publish
+
+```sh
+mqttx pub -t topic -m the-message -q 1 -V 3.1.1
+```
+
+Subscribe
+
+```sh
+mqttx sub -t topic -q 1 -V 3.1.1
+```

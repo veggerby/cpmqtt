@@ -33,7 +33,7 @@ class Client:
         except OSError:
             return False
 
-    def send(self, msg):
+    def send(self, msg: bytes):
         try:
             self.transport.write(msg)
         except OSError as e:
