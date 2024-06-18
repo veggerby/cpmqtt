@@ -3,7 +3,7 @@ import traceback
 from MQTTLogger import Logger
 from MQTTClient import Client, ClientSettings
 from MQTTProtocolHandlerInterface import ProtocolHandlerInterface
-from MQTTMessage import ConnectMessage, MQTTMessage, PublishMessage
+from MQTTMessage import ConnectMessage, MQTTMessage, PublishMessage, SubscribeMessage
 from MQTTClientManager import ClientManager
 from MQTTAuthenticator import Authenticator
 from MQTTTopicManager import TopicManager
@@ -128,23 +128,13 @@ class ProtocolHandler(ProtocolHandlerInterface):
         except Exception as e:
             self.logger.error(f'Error in handle_pubcomp: {e}, {traceback.format_exc()}')
 
-    def handle_subscribe(self, client: Client, mqtt_message: MQTTMessage):
+    def handle_subscribe(self, client: Client, subscribe_message: SubscribeMessage):
         try:
-            packet_id = mqtt_message.read_short()
-            topics = []
-
-            while mqtt_message.offset < len(mqtt_message.msg):
-                topic = mqtt_message.read_string()
-                qos = mqtt_message.read_byte()
-
-                if not topic:
-                    raise ValueError('Topic must not be empty')
-
+            for topic, qos in subscribe_message.topics:
                 self.topic_manager.subscribe(topic, client)
-                topics.append((topic, qos))
 
-            self.logger.info(f"Client subscribed to topics: {topics}")
-            sub_ack = struct.pack('>BBH', 0x90, 2 + len(topics), packet_id) + bytes([qos for topic, qos in topics])
+            self.logger.info(f"Client subscribed to topics: {subscribe_message.topics}")
+            sub_ack = struct.pack('>BBH', 0x90, 2 + len(subscribe_message.topics), subscribe_message.packet_id) + bytes([qos for topic, qos in subscribe_message.topics])
             client.send(sub_ack)
 
         except Exception as e:
