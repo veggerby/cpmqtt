@@ -1,5 +1,7 @@
 # MQTT Message Types and Their Structures
 
+See <https://cedalo.com/blog/mqtt-packet-guide/>
+
 ## 1. CONNECT Message (Type 1)
 
 **Header: message type: 1**
@@ -11,6 +13,7 @@
    - **Format**: UTF-8 encoded string
    - **Description**: Name of the protocol (usually "MQTT")
    - **Read**:
+
      ```python
      protocol_name, offset = self.__read_string(msg, 2)
      ```
@@ -21,6 +24,7 @@
    - **Type**: byte
    - **Description**: Version of the MQTT protocol
    - **Read**:
+
      ```python
      protocol_version, offset = self.__read_byte(msg, offset)
      ```
@@ -31,6 +35,7 @@
    - **Type**: byte
    - **Description**: Flags indicating connection options (username, password, will, clean session)
    - **Read**:
+
      ```python
      connect_flags, offset = self.__read_byte(msg, offset)
      ```
@@ -42,6 +47,7 @@
    - **Format**: Unsigned short
    - **Description**: Maximum time interval between messages
    - **Read**:
+
      ```python
      keep_alive, offset = self.__read_short(msg, offset)
      ```
@@ -53,6 +59,7 @@
    - **Format**: UTF-8 encoded string
    - **Description**: Unique identifier for the client
    - **Read**:
+
      ```python
      client_id, offset = self.__read_string(msg, offset)
      ```
@@ -64,6 +71,7 @@
    - **Format**: UTF-8 encoded string
    - **Description**: Username for authentication
    - **Read**:
+
      ```python
      if connect_flags & 0x80:
          username, offset = self.__read_string(msg, offset)
@@ -76,6 +84,7 @@
    - **Format**: UTF-8 encoded string
    - **Description**: Password for authentication
    - **Read**:
+
      ```python
      if connect_flags & 0x40:
          password, offset = self.__read_string(msg, offset)
@@ -91,6 +100,7 @@
    - **Type**: byte
    - **Description**: Acknowledgment flags
    - **Read**:
+
      ```python
      ack_flags, offset = self.__read_byte(msg, 2)
      ```
@@ -101,6 +111,7 @@
    - **Type**: byte
    - **Description**: Return code indicating the status of the connection request
    - **Read**:
+
      ```python
      return_code, offset = self.__read_byte(msg, 3)
      ```
@@ -115,6 +126,7 @@
    - **Type**: byte
    - **Description**: Contains message type and flags
    - **Read**:
+
      ```python
      fixed_header, offset = self.__read_byte(msg, 0)
      ```
@@ -125,6 +137,7 @@
    - **Type**: byte
    - **Description**: Length of the remaining part of the message
    - **Read**:
+
      ```python
      remaining_length, offset = self.__read_byte(msg, 1)
      ```
@@ -136,6 +149,7 @@
    - **Format**: UTF-8 encoded string
    - **Description**: Topic to which the message is published
    - **Read**:
+
      ```python
      topic_name, offset = self.__read_string(msg, offset)
      ```
@@ -147,6 +161,7 @@
    - **Format**: Unsigned short
    - **Description**: Identifier for the packet
    - **Read**:
+
      ```python
      if qos_level > 0:
          packet_id, offset = self.__read_short(msg, offset)
@@ -159,6 +174,7 @@
    - **Format**: Raw bytes
    - **Description**: The actual message content
    - **Read**:
+
      ```python
      payload, offset = self.__read(msg, offset, remaining_length - (offset - 2))
      ```
@@ -174,6 +190,7 @@
    - **Format**: Unsigned short
    - **Description**: Identifier for the acknowledged packet
    - **Read**:
+
      ```python
      packet_id, offset = self.__read_short(msg, 2)
      ```
@@ -189,6 +206,7 @@
    - **Format**: Unsigned short
    - **Description**: Identifier for the received packet
    - **Read**:
+
      ```python
      packet_id, offset = self.__read_short(msg, 2)
      ```
@@ -204,6 +222,7 @@
    - **Format**: Unsigned short
    - **Description**: Identifier for the released packet
    - **Read**:
+
      ```python
      packet_id, offset = self.__read_short(msg, 2)
      ```
@@ -219,6 +238,7 @@
    - **Format**: Unsigned short
    - **Description**: Identifier for the completed packet
    - **Read**:
+
      ```python
      packet_id, offset = self.__read_short(msg, 2)
      ```
@@ -234,6 +254,7 @@
    - **Format**: Unsigned short
    - **Description**: Identifier for the subscription packet
    - **Read**:
+
      ```python
      packet_id, offset = self.__read_short(msg, 2)
      ```
@@ -245,6 +266,7 @@
    - **Format**: UTF-8 encoded string (topic) and byte (QoS)
    - **Description**: List of topics and corresponding QoS levels
    - **Read**:
+
      ```python
      topics = []
      while offset < len(msg):
@@ -264,6 +286,7 @@
    - **Format**: Unsigned short
    - **Description**: Identifier for the subscription acknowledgment packet
    - **Read**:
+
      ```python
      packet_id, offset = self.__read_short(msg, 2)
      ```
@@ -275,6 +298,7 @@
    - **Format**: Byte
    - **Description**: List of return codes for each topic
    - **Read**:
+
      ```python
      return_codes = []
      while offset < len(msg):
@@ -293,6 +317,7 @@
    - **Format**: Unsigned short
    - **Description**: Identifier for the unsubscription packet
    - **Read**:
+
      ```python
      packet_id, offset = self.__read_short(msg, 2)
      ```
@@ -304,6 +329,7 @@
    - **Format**: UTF-8 encoded strings
    - **Description**: List of topics to unsubscribe from
    - **Read**:
+
      ```python
      topics = []
      while offset < len(msg):
@@ -322,6 +348,7 @@
    - **Format**: Unsigned short
    - **Description**: Identifier for the unsubscription acknowledgment packet
    - **Read**:
+
      ```python
      packet_id, offset = self.__read_short(msg, 2)
      ```
