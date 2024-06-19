@@ -1,7 +1,7 @@
 import traceback
-import MQTTLogger as Logger
-from MQTTClient import Client
-from MQTTMessage import PublishMessage
+import Logger as Logger
+from Client import Client
+from Messages import PublishMessage
 
 class Subscription:
     topic: str = ''

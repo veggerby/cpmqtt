@@ -1,4 +1,4 @@
-from MQTTLogger import Logger
+from Logger import Logger
 
 class Authenticator:
     logger: Logger

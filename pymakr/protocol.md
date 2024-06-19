@@ -1,6 +1,6 @@
 # MQTT Message Types and Their Structures
 
-See <https://cedalo.com/blog/mqtt-packet-guide/>
+See <https://cedalo.com/blog/mqtt-packet-guide/> and <https://www.emqx.com/en/blog/category/mqtt-protocol>
 
 ## 1. CONNECT Message (Type 1)
 
@@ -117,6 +117,8 @@ See <https://cedalo.com/blog/mqtt-packet-guide/>
      ```
 
 ## 3. PUBLISH Message (Type 3)
+
+See <https://www.emqx.com/en/blog/mqtt-5-0-control-packets-02-publish-puback>
 
 **Header: message type: 3**
 

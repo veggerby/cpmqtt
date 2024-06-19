@@ -33,6 +33,14 @@
       "label": "mqtt"
     }
   },
+  // "runArgs": [
+    // "--device=/dev/tty.usbserial-145230:/dev/tty.usbserial",
+    // "--device=/dev/ttys1"
+    // "--privileged"
+  // ],
+  // "mounts": [
+  //   "source=/dev/,target=/dev/,type=bind"
+  // ],
   "postCreateCommand": ".devcontainer/scripts/post_create.sh",
   // Configure tool-specific properties.
   // "customizations": {},

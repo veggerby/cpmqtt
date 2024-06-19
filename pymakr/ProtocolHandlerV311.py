@@ -1,12 +1,11 @@
-import struct
 import traceback
-from MQTTLogger import Logger
-from MQTTClient import Client, ClientSettings
-from MQTTProtocolHandlerInterface import ProtocolHandlerInterface
-from MQTTMessage import ConnAckMessage, ConnectMessage, DisconnectMessage, MQTTMessage, PingReqMessage, PingRespMessage, PubAckMessage, PublishMessage, SubAckMessage, SubscribeMessage, UnSubAckMessage, UnsubscribeMessage
-from MQTTClientManager import ClientManager
-from MQTTAuthenticator import Authenticator
-from MQTTSubscriptionManager import SubscriberManager
+from Logger import Logger
+from Client import Client, ClientSettings
+from ProtocolHandler import ProtocolHandler
+from Messages import ConnAckMessage, ConnectMessage, DisconnectMessage, MQTTMessage, PingReqMessage, PingRespMessage, PubAckMessage, PublishMessage, SubAckMessage, SubscribeMessage, UnSubAckMessage, UnsubscribeMessage
+from ClientManager import ClientManager
+from Authenticator import Authenticator
+from SubscriberManager import SubscriberManager
 
 PACKET_TYPE_CONNECT = 1
 PACKET_TYPE_CONNACK = 2
@@ -23,7 +22,7 @@ PACKET_TYPE_PINGREQ = 12
 PACKET_TYPE_PINGRESP = 13
 PACKET_TYPE_DISCONNECT = 14
 
-class ProtocolHandler(ProtocolHandlerInterface):
+class ProtocolHandlerV311(ProtocolHandler):
     SUPPORTED_PROTOCOLS = ['MQTT']
 
     def __init__(self, authenticator: Authenticator, topic_manager: SubscriberManager, client_manager: ClientManager, logger=None):
@@ -54,7 +53,7 @@ class ProtocolHandler(ProtocolHandlerInterface):
 
             self.logger.debug(f'Protocol Name: {client.settings.protocol_name} {client.settings.protocol_version} from {client.settings.client_id} - {client.settings.connect_flags} - {client.settings.keep_alive}')
 
-            if client.settings.protocol_name not in ProtocolHandler.SUPPORTED_PROTOCOLS:
+            if client.settings.protocol_name not in ProtocolHandlerV311.SUPPORTED_PROTOCOLS:
                 raise ValueError('Unsupported protocol')
 
             if not client.settings.client_id:
