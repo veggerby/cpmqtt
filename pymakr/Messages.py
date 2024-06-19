@@ -1,9 +1,9 @@
 import struct
 import abc
 
-from MQTTAuthenticator import Authenticator
-from MQTTClient import Client
-from MQTTProtocolHandlerInterface import ProtocolHandlerInterface
+from Authenticator import Authenticator
+from Client import Client
+from ProtocolHandler import ProtocolHandler
 
 PACKET_TYPE_CONNECT = 1
 PACKET_TYPE_CONNACK = 2
@@ -19,6 +19,8 @@ PACKET_TYPE_UNSUBACK = 11
 PACKET_TYPE_PINGREQ = 12
 PACKET_TYPE_PINGRESP = 13
 PACKET_TYPE_DISCONNECT = 14
+
+ENCODING_UTF8 = 'utf-8'
 
 class MQTTMessage(abc.ABC):
     msg: bytes
@@ -104,15 +106,13 @@ class MQTTMessage(abc.ABC):
     def write_short(self, short: int):
         self.msg += struct.pack('>H', short)
 
-    def read_string(self) -> str:
-        offset = self.offset
+    def read_string(self, encoding: str = ENCODING_UTF8) -> str:
         str_len = self.read_short()
-        # print(f'Reading string of length: {str_len} {self.offset}({offset}) < {len(self.msg)} {self.msg[self.offset:self.offset + str_len]!r}')
         str_buf = self.read(str_len)
-        return str_buf.decode('utf-8')
+        return str_buf.decode(encoding)
 
-    def write_string(self, str: str):
-        str_buf = str.encode('utf-8')
+    def write_string(self, str: str, encoding: str = ENCODING_UTF8):
+        str_buf = str.encode(encoding)
         self.write_short(len(str_buf))
         self.msg += str_buf
 
@@ -184,7 +184,7 @@ class MQTTMessage(abc.ABC):
         remaining_length = len(self.msg)
         self.msg = struct.pack('>B', (self.packet_type << 4) | (self.flags & 0x0F)) + self.__get_remaining_length(remaining_length) + self.msg
 
-    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+    def handle_message(self, handler: ProtocolHandler, client: Client):
         pass
 
     def send_to(self, client: Client, send_as_is = False):
@@ -243,7 +243,7 @@ class ConnectMessage(MQTTMessage):
         self.__is_authenticated = authenticator.authenticate(self.__username, self.__password)
         return self.__is_authenticated
 
-    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+    def handle_message(self, handler: ProtocolHandler, client: Client):
         handler.handle_connect(client, self)
 
 class ConnAckMessage(MQTTMessage):
@@ -270,8 +270,8 @@ class PublishMessage(MQTTMessage):
         else:
             self.packet_id = None
 
-    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
-        handler.handle_publish(client, self)\
+    def handle_message(self, handler: ProtocolHandler, client: Client):
+        handler.handle_publish(client, self)
 
 class PubAckMessage(MQTTMessage):
     def __init__(self, publish_message: PublishMessage = None, msg: bytes = None):
@@ -282,7 +282,7 @@ class PubAckMessage(MQTTMessage):
         self.packet_id = self.read_short()
 
     def write_message(self):
-        self.write_byte(self.publish_message.packet_id)
+        self.write_short(self.publish_message.packet_id)
 
 class SubscribeMessage(MQTTMessage):
     packet_id: int = 0
@@ -299,7 +299,7 @@ class SubscribeMessage(MQTTMessage):
         self.topic = self.read_string()
         self.qos = self.read_byte()
 
-    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+    def handle_message(self, handler: ProtocolHandler, client: Client):
         handler.handle_subscribe(client, self)
 
 class SubAckMessage(MQTTMessage):
@@ -324,7 +324,7 @@ class UnsubscribeMessage(MQTTMessage):
     def read_payload(self):
         self.topic = self.read_string()
 
-    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+    def handle_message(self, handler: ProtocolHandler, client: Client):
         handler.handle_unsubscribe(client, self)
 
 class UnSubAckMessage(MQTTMessage):
@@ -339,7 +339,7 @@ class PingReqMessage(MQTTMessage):
     def __init__(self, msg: bytes):
         super().__init__(PACKET_TYPE_PINGREQ, msg)
 
-    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+    def handle_message(self, handler: ProtocolHandler, client: Client):
         handler.handle_pingreq(client, self)
 
 class PingRespMessage(MQTTMessage):
@@ -351,5 +351,5 @@ class DisconnectMessage(MQTTMessage):
     def __init__(self, msg: bytes):
         super().__init__(PACKET_TYPE_DISCONNECT, msg)
 
-    def handle_message(self, handler: ProtocolHandlerInterface, client: Client):
+    def handle_message(self, handler: ProtocolHandler, client: Client):
         handler.handle_disconnect(client, self)

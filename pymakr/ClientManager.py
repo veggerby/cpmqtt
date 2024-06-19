@@ -1,6 +1,5 @@
-from asyncio import BaseTransport
-from MQTTLogger import Logger
-from MQTTClient import Client
+from Logger import Logger
+from Client import Client
 
 class ClientManager:
     logger: Logger
@@ -10,19 +9,21 @@ class ClientManager:
         self.clients = {}
         self.logger = logger or Logger()
 
-    def get_client(self, client_name: str, transport: BaseTransport):
+    def get_client(self, client_name: str) -> Client:
         if client_name in self.clients:
             return self.clients[client_name]
 
-        client = Client(client_name, transport, self.logger)
-        self.clients[client_name] = client
+        return None
 
-        return client
+    def add_client(self, client: Client):
+        if client.client_name in self.clients:
+            raise ValueError(f'Client {client.client_name} already exists')
 
-    def remove_client(self, client_name):
-        if client_name in self.clients:
-            client = self.clients[client_name]
-            del self.clients[client_name]
+        self.clients[client.client_name] = client
+
+    def remove_client(self, client: Client):
+        if client.client_name in self.clients:
+            del self.clients[client.client_name]
             client.close()
 
     def cleanup_clients(self):
