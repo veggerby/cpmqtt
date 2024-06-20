@@ -1,5 +1,4 @@
 import struct
-import abc
 
 from Authenticator import Authenticator
 from Client import Client
@@ -22,7 +21,7 @@ PACKET_TYPE_DISCONNECT = 14
 
 ENCODING_UTF8 = 'utf-8'
 
-class MQTTMessage(abc.ABC):
+class MQTTMessage:
     msg: bytes
 
     @staticmethod

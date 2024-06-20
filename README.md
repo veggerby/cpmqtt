@@ -61,3 +61,25 @@ Subscribe
 ```sh
 mqttx sub -t topic -q 1 -V 3.1.1
 ```
+## ESP32-C3
+
+Flash
+
+```sh
+brew install esptool
+```
+
+or
+
+```sh
+pip install esptool
+```
+
+Download image from <https://micropython.org/download/ESP32_GENERIC/>
+
+Flash ESP32:
+
+```sh
+esptool.py --chip esp32 --port /dev/cu.usbserial-145230 erase_flash
+esptool.py --chip esp32 --port /dev/cu.usbserial-145230 --baud 460800 write_flash -z 0x1000 ./esp32/ESP32_GENERIC-20240602-v1.23.0.bin
+```

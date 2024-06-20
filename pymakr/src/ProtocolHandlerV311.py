@@ -1,4 +1,3 @@
-import traceback
 from Logger import Logger
 from Client import Client, ClientSettings
 from ProtocolHandler import ProtocolHandler
@@ -40,7 +39,7 @@ class ProtocolHandlerV311(ProtocolHandler):
 
             message.handle_message(self, client)
         except Exception as e:
-            self.logger.error(f'Error in handle: {e}, {traceback.format_exc()}')
+            self.logger.error(f'Error in handle: {e}')
 
     def handle_connect(self, client: Client, connect_message: ConnectMessage):
         try:
@@ -70,7 +69,7 @@ class ProtocolHandlerV311(ProtocolHandler):
             ConnAckMessage(0, 1).send_to(client) # Connection Refused, unacceptable protocol version
             client.close()
         except Exception as e:
-            self.logger.error(f'Error in handle_connect: {e}, {traceback.format_exc()}')
+            self.logger.error(f'Error in handle_connect: {e}')
             ConnAckMessage(0, 2).send_to(client) # Connection Refused, identifier rejected
             client.close()
 
@@ -89,7 +88,7 @@ class ProtocolHandlerV311(ProtocolHandler):
                 raise NotImplementedError('QoS 2 not supported')
 
         except Exception as e:
-            self.logger.error(f'Error in handle_publish: {e}, {traceback.format_exc()}')
+            self.logger.error(f'Error in handle_publish: {e}')
 
     def handle_subscribe(self, client: Client, subscribe_message: SubscribeMessage):
         try:
@@ -100,7 +99,7 @@ class ProtocolHandlerV311(ProtocolHandler):
             SubAckMessage(subscribe_message).send_to(client)
 
         except Exception as e:
-            self.logger.error(f'Error in handle_subscribe: {e}, {traceback.format_exc()}')
+            self.logger.error(f'Error in handle_subscribe: {e}')
 
     def handle_unsubscribe(self, client: Client, unsubscribe_message: UnsubscribeMessage):
         try:
@@ -111,7 +110,7 @@ class ProtocolHandlerV311(ProtocolHandler):
             UnSubAckMessage(unsubscribe_message).send_to(client)
 
         except Exception as e:
-            self.logger.error(f'Error in handle_unsubscribe: {e}, {traceback.format_exc()}')
+            self.logger.error(f'Error in handle_unsubscribe: {e}')
 
     def handle_pingreq(self, client: Client, pingreq_message: PingReqMessage):
         try:
@@ -119,7 +118,7 @@ class ProtocolHandlerV311(ProtocolHandler):
             PingRespMessage(pingreq_message).send_to(client)
 
         except Exception as e:
-            self.logger.error(f'Error sending PINGRESP: {e}, {traceback.format_exc()}')
+            self.logger.error(f'Error sending PINGRESP: {e}')
 
     def handle_disconnect(self, client: Client, disconnect_message: DisconnectMessage):
         try:
@@ -127,4 +126,4 @@ class ProtocolHandlerV311(ProtocolHandler):
             self.client_manager.remove_client(client)
             client.close()
         except Exception as e:
-            self.logger.error(f'Error handling disconnect: {e}, {traceback.format_exc()}')
+            self.logger.error(f'Error handling disconnect: {e}')

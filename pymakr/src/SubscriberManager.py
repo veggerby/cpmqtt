@@ -1,5 +1,4 @@
-import traceback
-import Logger as Logger
+from Logger import Logger
 from Client import Client
 from Messages import PublishMessage
 
@@ -78,5 +77,5 @@ class SubscriberManager:
                 try:
                     publish_message.send_to(client, True)
                 except OSError as e:
-                    self.logger.error(f'Error forwarding message to subscriber: {e}, {traceback.format_exc()}')
+                    self.logger.error(f'Error forwarding message to subscriber: {e}')
                     self.unsubscribe(subscription.topic, client)
