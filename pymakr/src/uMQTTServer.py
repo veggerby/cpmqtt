@@ -1,18 +1,15 @@
-from Broker import Broker
 import uasyncio
+
+from Broker import Broker
 from Messages import MQTTMessage
-import traceback
 from Client import Client
 from Logger import Logger
 from Authenticator import Authenticator
-from ClientManager import ClientManager
-from ProtocolHandlerV311 import ProtocolHandlerV311
-from SubscriberManager import SubscriberManager
 
 DEFAULT_PORT = 1883
 SOCKET_BUFSIZE = 2048
 
-class uMQTTClient:
+class uMQTTClient(Client):
     def __init__(self, client_name: str, client_reader: uasyncio.StreamReader, client_writer: uasyncio.StreamWriter, logger = None):
         self.client_name = client_name
         self.client_reader = client_reader
@@ -30,7 +27,7 @@ class uMQTTClient:
         try:
             self.client_writer.write(msg)
         except OSError as e:
-            self.logger.error(f'Error sending message to client: {e}, {traceback.format_exc()}')
+            self.logger.error(f'Error sending message to client: {e}')
 
     def close(self):
         self.logger.info('Closing client connection')
@@ -38,54 +35,64 @@ class uMQTTClient:
         try:
             self.client_writer.close()
         except OSError as e:
-            self.logger.error(f'Error closing client connection: {e}, {traceback.format_exc()}')
+            self.logger.error(f'Error closing client connection: {e}')
 
 class uMQTTServer:
-    def __init__(self, broker: Broker, host='0.0.0.0', port=DEFAULT_PORT):
+    def __init__(self, broker: Broker, host='0.0.0.0', port=DEFAULT_PORT, logger: Logger=None):
         self.broker = broker
         self.host = host
         self.port = port
+        self.logger = logger or Logger()
 
     async def handle_client(self, client_reader, client_writer):
         client_name = client_writer.get_extra_info('peername')
+
+        self.logger.info(f'New client connected {client_name}')
+
         client = self.broker.client_manager.get_client(client_name)
 
         if client is None:
             client = uMQTTClient(client_name, client_reader, client_writer, self.broker.logger)
             self.broker.client_manager.add_client(client)
+
         try:
             while True:
                 data = await client_reader.read(SOCKET_BUFSIZE)
-                if not data:
+
+                if not data or len(data) == 0:
                     break
-                message = MQTTMessage.create(data)
-                await message.handle_message(self.broker.protocol_handler, client)
+
+                self.broker.protocol_handler.handle(client, data)
         except Exception as e:
-            print(f"Exception: {e}")
+            self.logger.error(f'Error handling client: {e}')
+            raise e
         finally:
             client_writer.close()
             await client_writer.wait_closed()
 
     async def start_server(self):
         server = await uasyncio.start_server(self.handle_client, self.host, self.port)
-        async with server:
-            await server.serve_forever()
+        await server.wait_closed()
 
-async def main():
-    host = '0.0.0.0'
-    port = 1883
+def start_local():
+    logger = Logger()
+    try:
+        host = '0.0.0.0'
+        port = 1883
 
-    # Define the user database for authentication
-    user_db = {
-        "admin": "password",  # Replace with your desired username and password
-        "user": "userpass"
-    }
+        # Define the user database for authentication
+        user_db = {
+            "admin": "password",  # Replace with your desired username and password
+            "user": "userpass"
+        }
 
-    # Initialize the broker
-    broker = Broker(authenticator=Authenticator(user_db))
+        logger.info(f'Starting server listening on {host}:{port}')
 
-    server = uMQTTServer(broker, host, port)
-    uasyncio.run(server.start_server())
+        # Initialize the broker
+        broker = Broker(authenticator=Authenticator(user_db), logger=logger)
 
-if __name__ == "__main__":
-    main()
+        server = uMQTTServer(broker, host, port, logger=logger)
+        uasyncio.run(server.start_server())
+    except Exception as e:
+        logger.error(f'Error starting server: {e}')
+        raise e

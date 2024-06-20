@@ -27,9 +27,12 @@ class ClientManager:
             client.close()
 
     def cleanup_clients(self):
-        for client_name in list(self.clients.keys()):
-            client = self.clients[client_name]
-            if not client.is_ready():
-                self.logger.warning(f'Removing closed client: {client}')
-                self.remove_client(client)
-                client.close()
+        try:
+            for client_name in list(self.clients.keys()):
+                client = self.clients[client_name]
+                if not client.is_ready():
+                    self.logger.warning(f'Removing closed client: {client}')
+                    self.remove_client(client)
+                    client.close()
+        except Exception as e:
+            self.logger.error(f'Error cleaning up clients: {e}')

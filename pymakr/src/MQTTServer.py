@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import asyncio
 import sys
-import traceback
 from Authenticator import Authenticator
 from Broker import Broker
 from Client import Client, ClientSettings
@@ -25,7 +24,7 @@ class MQTTClient(Client):
         try:
             self.transport.write(msg)
         except OSError as e:
-            self.logger.error(f'Error sending message to client: {e}, {traceback.format_exc()}')
+            self.logger.error(f'Error sending message to client: {e}')
 
     def close(self):
         self.logger.info('Closing client connection')
@@ -33,7 +32,7 @@ class MQTTClient(Client):
         try:
             self.transport.close()
         except OSError as e:
-            self.logger.error(f'Error closing client connection: {e}, {traceback.format_exc()}')
+            self.logger.error(f'Error closing client connection: {e}')
 
 class MQTTBrokerProtocol(asyncio.Protocol):
     client: MQTTClient = None
@@ -65,7 +64,7 @@ class MQTTBrokerProtocol(asyncio.Protocol):
 
     def connection_lost(self, exc):
         self.logger.info(
-            f'The client {self.client.client_name} closed the connection {exc} {traceback.format_exc()}')
+            f'The client {self.client.client_name} closed the connection {exc}')
         self.broker.client_manager.remove_client(self.client)
 
 class MQTTServer:

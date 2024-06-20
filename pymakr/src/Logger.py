@@ -1,5 +1,8 @@
 # import ulogging as logging
 
+import sys
+
+
 class Logger:
     HEADER = '\033[95m'
     SEND = '\033[94m'
@@ -29,8 +32,11 @@ class Logger:
     def warning(self, message):
         self.log(Logger.WARNING, message)
 
-    def error(self, message):
+    def error(self, message, exception=None):
         self.log(Logger.ERROR, message)
+
+        if exception is not None:
+            sys.print_exception(exception)
 
     def send(self, message):
         self.log(Logger.SEND, message)

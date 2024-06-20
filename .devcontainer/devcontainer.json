@@ -34,12 +34,12 @@
     }
   },
   // "runArgs": [
-    // "--device=/dev/tty.usbserial-145230:/dev/tty.usbserial",
+    // "--device=/dev/cu.usbserial-145230"
     // "--device=/dev/ttys1"
     // "--privileged"
   // ],
   // "mounts": [
-  //   "source=/dev/,target=/dev/,type=bind"
+  //   "source=/dev/cu.usbserial-145230,target=/dev/cu.usbserial-145230,type=bind"
   // ],
   "postCreateCommand": ".devcontainer/scripts/post_create.sh",
   // Configure tool-specific properties.
