@@ -307,7 +307,7 @@ class SubAckMessage(MQTTMessage):
         self.subscribe_message = subscribe_message
 
     def write_message(self):
-        self.write_byte(self.subscribe_message.packet_id)
+        self.write_short(self.subscribe_message.packet_id)
         self.write_byte(self.subscribe_message.qos)
 
 class UnsubscribeMessage(MQTTMessage):
