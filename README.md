@@ -23,8 +23,8 @@
 
 ## jupyter_notebooks
 
-   - [x] MicroPython intro og opgaver
-      - [ ] Introduktion til loops
+   - [x] MicroPython intro
+   - [x] MicroPython intro opgaver
    - [ ] WIP: installation af thonny og opsætning til ESP32/pico W board
    - [x] Test af om board RGB LED
    - [x] Test af udlæsning af data fra BME280
