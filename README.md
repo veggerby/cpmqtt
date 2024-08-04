@@ -1,6 +1,9 @@
 # cpmqtt
 
-## thonny_scripts
+## MQTT Test
+
+<details>
+<summary>Click here</summary>
 
  #### ***MQTTBroker Class - Test***:
  * [x] Kan håndtere MQTTx app forbinder til enheden
@@ -21,21 +24,28 @@
      * [x] sende beskeder
      * [x] modtage beskeder
 
-## jupyter_notebooks
+</details>
 
-   - [x] MicroPython intro
-   - [x] MicroPython intro opgaver
-   - [ ] WIP: installation af VSCode, PyMakr og jupyter notebook
-   - [x] Test af inbygget RGB LED
-   - [x] RGB LED strip
-   - [ ] Test af udlæsning af data fra BME280
-   - [ ] OLED Display
-   - [ ] Steppermotor
-   - [ ] LED og formodstande
+## Jupyter Notebooks Tutorials
 
-   - [ ] Intro til MQTT's virkemåde
-   - [ ] test af MQTTx, der skal forbindes til en "frivillig" access point og broker. Subscribe og publish beskeder mellem pirater
-   - [ ] intro til WiFi som access point og station
-   - [ ] opsætning af egen broker på ESP32, test med MQTTx sammen med en med-pirat
-   - [ ] opsætning af klient, der for binder til broker. Test publish og subscribe MQTTx. eventuelt ekstra opgaver med at sende data fra BME280
-   - [ ] Intro Node-Red dashboard. sende målinger fra BME280 til dashboard
+<details>
+<summary>Click here</summary>
+
+- [x] MicroPython intro
+- [x] MicroPython intro opgaver
+- [ ] WIP: installation af VSCode, PyMakr og jupyter notebook
+- [x] Test af inbygget RGB LED
+- [x] RGB LED strip
+- [ ] Test af udlæsning af data fra BME280
+- [ ] OLED Display
+- [ ] Steppermotor
+- [ ] LED og formodstande
+
+- [ ] Intro til MQTT's virkemåde
+- [ ] test af MQTTx, der skal forbindes til en "frivillig" access point og broker. Subscribe og publish beskeder mellem pirater
+- [ ] intro til WiFi som access point og station
+- [ ] opsætning af egen broker på ESP32, test med MQTTx sammen med en med-pirat
+- [ ] opsætning af klient, der for binder til broker. Test publish og subscribe MQTTx. eventuelt ekstra opgaver med at sende data fra BME280
+- [ ] Intro Node-Red dashboard. sende målinger fra BME280 til dashboard
+
+</details>
