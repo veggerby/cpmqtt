@@ -25,13 +25,13 @@
 
    - [x] MicroPython intro
    - [x] MicroPython intro opgaver
-   - [ ] WIP: installation af thonny og opsætning til ESP32/pico W board
-   - [x] Test af om board RGB LED
-   - [x] Test af udlæsning af data fra BME280
-   - [x] OLED Display
+   - [ ] WIP: installation af VSCode, PyMakr og jupyter notebook
+   - [x] Test af inbygget RGB LED
    - [x] RGB LED strip
-   - [x] Steppermotor
-   - [x] LED og formodstande
+   - [ ] Test af udlæsning af data fra BME280
+   - [ ] OLED Display
+   - [ ] Steppermotor
+   - [ ] LED og formodstande
 
    - [ ] Intro til MQTT's virkemåde
    - [ ] test af MQTTx, der skal forbindes til en "frivillig" access point og broker. Subscribe og publish beskeder mellem pirater
