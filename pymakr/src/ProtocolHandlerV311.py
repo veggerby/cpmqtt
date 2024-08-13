@@ -103,10 +103,11 @@ class ProtocolHandlerV311(ProtocolHandler):
 
     def handle_unsubscribe(self, client: Client, unsubscribe_message: UnsubscribeMessage):
         try:
-            self.topic_manager.unsubscribe(unsubscribe_message.topic, client)
+            for topic in unsubscribe_message.topics:
+                self.topic_manager.unsubscribe(topic, client)
+                self.logger.info(f"Client unsubscribed from topic: {topic}")
 
-            self.logger.info(f"Client unsubscribed from topics: {unsubscribe_message.topic}")
-
+            # Send UnsubAck message back to the client
             UnSubAckMessage(unsubscribe_message).send_to(client)
 
         except Exception as e:

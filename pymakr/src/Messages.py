@@ -312,7 +312,7 @@ class SubAckMessage(MQTTMessage):
 
 class UnsubscribeMessage(MQTTMessage):
     packet_id: int = 0
-    topic: str = ''
+    topic: any
 
     def __init__(self, msg: bytes):
         super().__init__(PACKET_TYPE_UNSUBSCRIBE, msg)
@@ -321,7 +321,11 @@ class UnsubscribeMessage(MQTTMessage):
         self.packet_id = self.read_short()
 
     def read_payload(self):
-        self.topic = self.read_string()
+        self.topics = []
+
+        while self.offset < len(self.msg):
+            topic = self.read_string()
+            self.topics.append(topic)
 
     def handle_message(self, handler: ProtocolHandler, client: Client):
         handler.handle_unsubscribe(client, self)
@@ -332,7 +336,7 @@ class UnSubAckMessage(MQTTMessage):
         self.unsubscribe_message = unsubscribe_message
 
     def write_message(self):
-        self.write_byte(self.unsubscribe_message.packet_id)
+        self.write_short(self.unsubscribe_message.packet_id)
 
 class PingReqMessage(MQTTMessage):
     def __init__(self, msg: bytes):

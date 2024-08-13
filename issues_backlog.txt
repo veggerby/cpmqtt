@@ -1,0 +1,5 @@
+Unsubscribe
+Simplere initialisering
+Susbscribe til simpelt topic (fx. "topic")
+Max 5 clients?
+Remove clients (Error sending message to client: [Errno 9] EBADF)

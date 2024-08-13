@@ -68,7 +68,7 @@ class MQTTBrokerProtocol(asyncio.Protocol):
         self.broker.client_manager.remove_client(self.client)
 
 class MQTTServer:
-    def __init__(self, broker: Broker, host: str = '0.0.0.0', port: int = DEFAULT_PORT, logger: Logger = None):
+    def __init__(self, host: str = '0.0.0.0', port: int = DEFAULT_PORT, broker: Broker = None, logger: Logger = None):
         self.broker = broker
         self.host = host
         self.port = port

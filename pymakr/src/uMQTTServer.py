@@ -1,4 +1,4 @@
-import uasyncio
+import uasyncio as asyncio
 
 from Broker import Broker
 from Messages import MQTTMessage
@@ -10,7 +10,7 @@ DEFAULT_PORT = 1883
 SOCKET_BUFSIZE = 2048
 
 class uMQTTClient(Client):
-    def __init__(self, client_name: str, client_reader: uasyncio.StreamReader, client_writer: uasyncio.StreamWriter, logger = None):
+    def __init__(self, client_name: str, client_reader: asyncio.StreamReader, client_writer: asyncio.StreamWriter, logger = None):
         self.client_name = client_name
         self.client_reader = client_reader
         self.client_writer = client_writer
@@ -38,11 +38,11 @@ class uMQTTClient(Client):
             self.logger.error(f'Error closing client connection: {e}')
 
 class uMQTTServer:
-    def __init__(self, broker: Broker, host='0.0.0.0', port=DEFAULT_PORT, logger: Logger=None):
-        self.broker = broker
+    def __init__(self, host='0.0.0.0', port=DEFAULT_PORT, broker: Broker=None, logger: Logger=None):
+        self.logger = logger or Logger()
+        self.broker = broker or Broker(logger=self.logger)
         self.host = host
         self.port = port
-        self.logger = logger or Logger()
 
     async def handle_client(self, client_reader, client_writer):
         client_name = client_writer.get_extra_info('peername')
@@ -67,11 +67,13 @@ class uMQTTServer:
             self.logger.error(f'Error handling client: {e}')
             raise e
         finally:
+            self.logger.info(f'Client disconnected {client_name}')
             client_writer.close()
             await client_writer.wait_closed()
+            self.broker.client_manager.remove_client(client)
 
     async def start_server(self):
-        server = await uasyncio.start_server(self.handle_client, self.host, self.port)
+        server = await asyncio.start_server(self.handle_client, self.host, self.port, backlog=10)
         await server.wait_closed()
 
 def start_local():
@@ -91,8 +93,10 @@ def start_local():
         # Initialize the broker
         broker = Broker(authenticator=Authenticator(user_db), logger=logger)
 
-        server = uMQTTServer(broker, host, port, logger=logger)
-        uasyncio.run(server.start_server())
+        server = uMQTTServer(host, port, broker, logger=logger)
+        asyncio.run(server.start_server())
     except Exception as e:
         logger.error(f'Error starting server: {e}')
         raise e
+    finally:
+        asyncio.new_event_loop()  # Clear uasyncio stored state
