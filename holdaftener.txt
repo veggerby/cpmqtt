@@ -1,0 +1,10 @@
+1. Intro til python (2)
+2. Miljø
+
+
+3. Kasse
+4. Grej
+
+5. Sensor/enheder
+6. MQTT
+7. Nodered

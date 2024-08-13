@@ -1,0 +1,49 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/debian
+{
+  "name": "cp-mqtt",
+  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+  "image": "mcr.microsoft.com/devcontainers/base:debian",
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "nodeGypDependencies": false
+    },
+    "ghcr.io/devcontainers/features/python:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-toolsai.jupyter",
+        "DavidAnson.vscode-markdownlint",
+        "Pycom.pymakr"
+      ]
+    }
+  },
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/usr/local/py-utils/bin:/home/vscode/.local/bin/"
+  },
+  "remoteUser": "vscode",
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  "forwardPorts": [
+    1883
+  ],
+  "portsAttributes": {
+    "1883": {
+      "label": "mqtt"
+    }
+  },
+  // "runArgs": [
+    // "--device=/dev/cu.usbserial-145230"
+    // "--device=/dev/ttys1"
+    // "--privileged"
+  // ],
+  // "mounts": [
+  //   "source=/dev/cu.usbserial-145230,target=/dev/cu.usbserial-145230,type=bind"
+  // ],
+  "postCreateCommand": ".devcontainer/scripts/post_create.sh",
+  // Configure tool-specific properties.
+  // "customizations": {},
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "root"
+}
