@@ -10,6 +10,7 @@ sta_if = network.WLAN(network.STA_IF)
 def connect_to_wifi(ssid=SSID, password=PASSWORD, retries=5):
     #ap_if = network.WLAN(network.AP_IF)
     sta_if.active(True)
+    sta_if.scan()
     sta_if.connect(ssid, password)
 
     print(f'Connecting to WiFi {ssid}', end="")
