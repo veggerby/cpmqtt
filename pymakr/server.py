@@ -4,8 +4,7 @@ from machine import Pin
 from neopixel import NeoPixel
 import random
 
-
-AP = False
+AP = True
 
 NAVN = f"JohnDoe{random.randint(1, 100)}"
 
@@ -34,12 +33,14 @@ status_led(YELLOW)
 
 try:
     if AP:
+        print(f'Starting WIFI {SSID}')
         wifi.start_hotspot(SSID, PASSWORD)
     else:
         wifi.try_connect_to_wifi(SSID, PASSWORD)
     status_led(GREEN)
     uMQTTServer.start_local()
-except:
+except Exception as error:
+    print("An exception occurred:", error) # An exception occurred: division by zero
     status_led(RED)
 
 status_led()

@@ -4,8 +4,11 @@ import network
 # Configuration for the Access Point
 SSID = 'frivillig'
 PASSWORD = 'test1234'
+DEFAULT_CHANNEL = 10
+DEFAULT_COUNTRY = 'DK'
 
 sta_if = network.WLAN(network.STA_IF)
+ap = network.WLAN(network.AP_IF)
 
 def scan_wifi():
     sta_if.active(True)
@@ -47,13 +50,21 @@ def try_connect_to_wifi(ssid=SSID, password=PASSWORD):
 
 def disable():
     sta_if.active(False)
-    print('disconnected')
+    ap.active(False)
 
-def start_hotspot(ssid=SSID, password=PASSWORD):
+def start_hotspot(ssid=SSID, password=PASSWORD, channel=DEFAULT_CHANNEL, country=DEFAULT_COUNTRY, retries=10):
     # Create an access point (AP) interface
-    ap = network.WLAN(network.AP_IF)
-    ap.config(essid=ssid, password=password)
+    disable()
+
+    network.country(DEFAULT_COUNTRY)
     ap.active(True)
+    ap.config(essid=ssid, key=password, channel=channel)
+
+    while not ap.active() and retries > 0:
+        time.sleep(1)
+        print('.', end="")
+        retries -= 1
+
     print(f"Access Point {ssid} started with IP: {ap.ifconfig()[0]}")
 
 
